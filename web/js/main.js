@@ -5,7 +5,7 @@ import { loadCohort, fetchFrames, maxOf, valuesAt, scanIndexAt, interp } from ".
 import { Viewer, webglSupported } from "./viewer3d.js";
 import { Chart } from "./chart.js";
 import { Picker } from "./picker.js";
-import { renderStatic, renderFromData } from "./modelcard.js";
+import { renderFromData } from "./modelcard.js";
 import {
   fmtVol, fmtPct, fmtDay, fmtNum, isNum, NA, esc, scenInfo, statusInfo, DATASET_LABEL, AGENT_LABEL, markerSvg,
 } from "./format.js";
@@ -314,7 +314,9 @@ function renderPatientStatic(p) {
   const tags = ['<span class="tag tag-illustrative">illustrative forecast</span>', '<span class="tag tag-measured">measured scans</span>'];
   if (cohort.kind === "fixture") tags.push('<span class="tag tag-fixture">sample data</span>');
   $("stage-tags").innerHTML = tags.join("");
-  $("scalebar").textContent = isNum(p.boxMm) ? `Box edge ${Math.round(p.boxMm)} mm (${p.gridCells} cells of ${p.spacingMm} mm, shown on a ${N}³ grid)` : `Box size ${NA}`;
+  const bx = p.boxMm;
+  const boxTxt = !bx ? null : bx.every((v) => Math.abs(v - bx[0]) < 0.5) ? `${Math.round(bx[0])} mm` : bx.map((v) => Math.round(v)).join(" × ") + " mm";
+  $("scalebar").textContent = boxTxt ? `Box edge ${boxTxt}, shown on a ${N}³ grid` : `Box size ${NA}`;
 
   // warnings
   const warn = $("ro-warn");
@@ -355,8 +357,12 @@ function renderPatientStatic(p) {
     ["Segmented tumour at last scan", fmtVol(last.tumor)],
     ["Resection cavity at last scan", fmtVol(last.cavity)],
     ["Fit status", statusInfo(p.status).label],
-    ["IDH status", p.idh ?? NA],
-    ["WHO grade", p.whoGrade ?? NA],
+    ["Age at first scan", isNum(p.age) ? `${Math.round(p.age)} years` : NA],
+    ["Sex", p.sex ?? NA],
+    ["Diagnosis", p.diagnosis ?? NA],
+    ["WHO grade", isNum(p.whoGrade) ? String(p.whoGrade) : NA],
+    ["IDH status", p.idh === "wt" ? "wild-type" : p.idh === "mut" ? "mutant" : p.idh ?? NA],
+    ["MGMT promoter", p.mgmt ?? NA],
   ];
   $("ro-facts").innerHTML = f.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("");
 
@@ -523,7 +529,6 @@ function drawGizmo(camera) {
 // ---------- boot ----------
 async function boot() {
   initTheme();
-  renderStatic();
   stageState("Loading patient list", { loading: true });
   glOk = webglSupported();
   try {
@@ -542,6 +547,7 @@ async function boot() {
   picker = new Picker({
     list: $("plist"), count: $("plist-count"), q: $("q"), status: $("f-status"),
     sort: $("f-sort"), frames: $("f-frames"), tx: $("f-tx"),
+    idh: $("f-idh"), idhWrap: $("f-idh-wrap"), grade: $("f-grade"), gradeWrap: $("f-grade-wrap"),
   }, { onSelect: (p) => selectPatient(p) });
   picker.setPatients(cohort.patients);
 

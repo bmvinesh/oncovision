@@ -25,17 +25,18 @@ data/                     (baked; optional, falls back to data-fixture/)
 data-fixture/             (committed sample, 3 real MU-Glioma-Post patients)
 ```
 
-Per case the viewer uses: `uid`, `status`, `rho`, `delta`, `D`, `grid{cells,spacing_mm}`, `observed[]`, `observed_frames`, `scenarios{<name>:{day,burden_mm3,volume_mm3,frames}}`, `recorded_schedule`, `assumptions`, `calibrated_on_first_interval`. Top level: `dataset`, `D_mm2_per_day`, `horizon_days`, `effects`, `forecast_metrics`. Optional per-case `idh`, `who_grade` (or `clinical.{idh,who_grade}`) are shown when present, otherwise "not available". Size mismatches between `shape` and the file's byte length are reported in the stage, not silently rendered.
+Per case the viewer uses: `uid`, `status`, `rho`, `delta`, `D`, `grid{cells,spacing_mm}`, `frames_box_mm`, `clinical{age_years,sex,who_grade,idh,mgmt,diagnosis}`, `observed[]`, `observed_frames`, `scenarios{<name>:{day,burden_mm3,volume_mm3,frames}}`, `recorded_schedule`, `assumptions`, `calibrated_on_first_interval`. Top level: `dataset`, `D_mm2_per_day`, `horizon_days`, `effects`, `forecast_metrics`, `model_card{treatment_fit,risk,forecast}`. Any missing field renders as "not available"; the IDH and WHO-grade filters appear only when some patient has the field. Size mismatches between `shape` and the file's byte length are reported in the stage, not silently rendered.
 
 ## What is real, what is not
 
 | Item | Status |
 | --- | --- |
-| Patient observations, burden curves, scenario curves, 3D frames | Real files from the backend (`data-fixture/`). No procedural mock volumes remain. |
-| Treatment priors table, forecast-check table | Read live from `whatif_cases.json` (`effects`, `forecast_metrics`). |
-| Treatment-effect fit (333 intervals, 144 patients, kill rates, 6.6% worse CV) and mortality-risk AUCs (pooled, within, leave-one-dataset-out, IDH-wt) | **Hard-coded** in `js/modelcard.js` (`MODEL_RESULTS`) from results reported by the backend. They are not in any data file yet. Replace by reading a `model_card.json` when one exists. |
+| Patient observations, burden curves, scenario curves, 3D frames, clinical fields, box size | Real files from the backend (`data-fixture/`). No procedural mock volumes. |
+| Treatment-effect fit, risk AUCs, forecast check, priors | Read live from `whatif_cases.json` (`model_card`, `effects`, `forecast_metrics`). Absent block renders "not available". |
+| Two facts quoted from `docs/runbooks/treatment-effects.md` (growth-rate autocorrelation -0.02 over 221 interval pairs; 71 of 150 calibrations needed the shrinking branch) | **Hard-coded** in `js/modelcard.js` (`RUNBOOK_FACTS`), labelled with their source. Replace when the JSON carries them. |
+| `cv_vs_no_treatment_baseline_pct` | The sign is interpreted as: negative = worse than the no-treatment baseline (-6.6 is shown as "6.6% worse"). |
 | Narrative, live `/api/simulate`, `/api/health` | Not built. This viewer is static-only. |
-| Contract section 3 (`manifest.json`, `case.json`, `frames.u8`) | Not consumed. The viewer follows the `whatif_cases.json` format the backend now emits. |
+| Contract section 3 (`manifest.json`, `case.json`, `frames.u8`) | Not consumed. The viewer follows the `whatif_cases.json` format the backend emits. |
 
 ## Honesty rules in the UI
 

@@ -75,8 +75,15 @@
               <option value="last">Burden at last scan</option>
               <option value="growth">Forecast change, no treatment</option>
               <option value="scans">Number of scans</option>
+              <option value="age">Age</option>
               <option value="span">Follow-up length</option>
             </select>
+          </label>
+          <label id="f-idh-wrap" hidden>IDH
+            <select id="f-idh"><option value="">Any</option></select>
+          </label>
+          <label id="f-grade-wrap" hidden>WHO grade
+            <select id="f-grade"><option value="">Any</option></select>
           </label>
           <label class="check"><input id="f-frames" type="checkbox"> 3D frames only</label>
           <label class="check"><input id="f-tx" type="checkbox"> Treatment recorded</label>
@@ -227,21 +234,21 @@
     <div class="bento">
       <article class="bcard b-wide b-hero">
         <h3>Treatment effects were not identifiable in our data</h3>
-        <p class="b-big"><span class="num-serif">6.6%</span><span class="b-unit">worse than a no-treatment baseline</span></p>
-        <p>Leave-patients-out cross-validation, 333 intervals from 144 patients (MU-Glioma-Post). Fitted kill rates for temozolomide, TTFields and radiation are 0, with confidence intervals that include 0.</p>
+        <p class="b-big"><span class="num-serif" id="b-cv">not available</span><span class="b-unit" id="b-cv-unit">versus a no-treatment baseline</span></p>
+        <p id="b-fit-text">Fit result not available in this data file.</p>
         <div id="bento-fit" class="viz"></div>
         <p class="b-foot"><span class="tag tag-measured">measured</span> <a href="#mc-fit">Details</a></p>
       </article>
       <article class="bcard">
         <h3>Mortality risk model</h3>
-        <p class="b-big"><span class="num-serif">0.74</span><span class="b-unit">pooled AUC, 676 patients</span></p>
-        <p>Held out by dataset it falls to 0.72, 0.56 and 0.46. The last is chance.</p>
+        <p class="b-big"><span class="num-serif" id="b-risk-auc">not available</span><span class="b-unit" id="b-risk-unit">pooled AUC</span></p>
+        <p id="b-risk-text">Risk results not available in this data file.</p>
         <div id="bento-risk" class="viz"></div>
         <p class="b-foot"><span class="tag tag-measured">measured</span> <a href="#mc-risk">Details</a></p>
       </article>
       <article class="bcard">
         <h3>What the scenarios assume</h3>
-        <p class="b-big"><span class="num-serif">28 to 42%</span><span class="b-unit">growth suppression while an agent is active</span></p>
+        <p class="b-big"><span class="num-serif" id="b-prior-range">not available</span><span class="b-unit">growth suppression while an agent is active</span></p>
         <p>Taken from trial progression-free-survival ratios. Not estimated here, and not independent of imaging pseudo-response for bevacizumab.</p>
         <p class="b-foot"><span class="tag tag-illustrative">illustrative</span> <a href="#mc-priors">Sources</a></p>
       </article>
@@ -249,7 +256,7 @@
         <h3>Does the model forecast the next scan?</h3>
         <div id="bento-forecast" class="viz"></div>
         <p id="bento-forecast-note"></p>
-        <p class="b-foot"><span class="tag tag-fixture">sample data</span> <span class="tag tag-measured">measured</span> <a href="#mc-forecast">Details</a></p>
+        <p class="b-foot"><span class="tag tag-measured">measured</span> <a href="#mc-forecast">Details</a></p>
       </article>
     </div>
   </section>
@@ -273,17 +280,13 @@
 
       <section id="mc-fit" aria-labelledby="mc-fit-h" class="mc-wide">
         <h3 id="mc-fit-h">Treatment-effect fit <span class="tag tag-measured">measured</span></h3>
-        <p>We fitted a per-day kill rate for each agent to growth between consecutive scans: <strong>333 intervals, 144 patients</strong> from MU-Glioma-Post. This is a finding, not a failure of the fit: in retrospective charts, treatment is given to tumours that are already progressing (confounding by indication), so treated intervals do not grow more slowly than untreated ones.</p>
-        <div class="table-wrap"><table class="data">
-          <thead><tr><th scope="col">Agent</th><th scope="col" class="num">Fitted kill rate (per day)</th><th scope="col">Interval (patient-cluster bootstrap)</th></tr></thead>
-          <tbody>
-            <tr><th scope="row">Temozolomide</th><td class="num">0</td><td>includes 0 (bounds not available)</td></tr>
-            <tr><th scope="row">TTFields</th><td class="num">0</td><td>includes 0 (bounds not available)</td></tr>
-            <tr><th scope="row">Radiation</th><td class="num">0</td><td>includes 0 (bounds not available)</td></tr>
-            <tr><th scope="row">Bevacizumab</th><td class="num">0.003</td><td>0 to 0.009</td></tr>
-          </tbody>
+        <p id="mc-fit-text">Fit result not available in this data file.</p>
+        <div class="table-wrap"><table class="data" id="fit-table">
+          <thead><tr><th scope="col">Agent</th><th scope="col" class="num">Fitted kill rate</th><th scope="col">Interval</th><th scope="col" class="num">Intervals exposed</th></tr></thead>
+          <tbody><tr><td colspan="4">not available</td></tr></tbody>
         </table></div>
-        <p>Predicting held-out patients with the fitted treatment terms was <strong>6.6% worse</strong> than a baseline with no treatment effect. The scenarios therefore use literature priors instead, and say so.</p>
+        <p id="mc-fit-cv"></p>
+        <p id="mc-fit-caveat" class="note"></p>
       </section>
 
       <section id="mc-priors" aria-labelledby="mc-priors-h" class="mc-wide">
@@ -299,21 +302,22 @@
         <h3 id="mc-risk-h">Mortality risk model <span class="tag tag-measured">measured</span></h3>
         <p>This is a separate model from the growth simulation. It ranks patients by mortality risk and does not predict tumour growth.</p>
         <div id="risk-chart" class="viz"></div>
-        <p>Pooled AUC is 0.74 over 676 patients. Within each dataset it is 0.78 (UCSF), 0.66 (MU) and 0.69 (UCSD). When a whole dataset is held out it is 0.72, 0.56 and 0.46, so <strong>external validation is weak</strong>, and chance for UCSD. For comparison, IDH wild-type status alone gives AUC 0.75 on UCSF.</p>
+        <p id="mc-risk-text">Risk results not available in this data file.</p>
       </section>
 
       <section id="mc-forecast" aria-labelledby="mc-forecast-h" class="mc-wide">
-        <h3 id="mc-forecast-h">Forecast check <span class="tag tag-fixture">sample data</span> <span class="tag tag-measured">measured</span></h3>
+        <h3 id="mc-forecast-h">Forecast check <span class="tag tag-measured">measured</span></h3>
         <p id="mc-forecast-text">Loading</p>
         <div class="table-wrap"><table class="data" id="forecast-table">
           <thead><tr><th scope="col">Method</th><th scope="col" class="num">Typical error (log ratio)</th><th scope="col" class="num">Typical factor off</th><th scope="col" class="num">Direction right</th></tr></thead>
           <tbody></tbody>
         </table></div>
+        <p id="mc-autocorr"></p>
       </section>
 
       <section aria-labelledby="mc-lim-h" class="mc-wide">
         <h3 id="mc-lim-h">Limits to keep in mind</h3>
-        <ul class="bullets">
+        <ul class="bullets" id="mc-limits">
           <li>Scenario curves are what the model does under assumed effects. They are not what would have happened to this patient.</li>
           <li>Growth rate &rho; is calibrated on a single interval per patient. Some fits do not converge; those are flagged and should not be read.</li>
           <li>Density is a seed built from segmentation labels, not a measurement. The 3D view is a 32&times;32&times;32 display grid, so fine structure is lost.</li>

@@ -38,7 +38,8 @@ export async function loadCohort() {
           D: isNum(raw.D_mm2_per_day) ? raw.D_mm2_per_day : null,
           horizon: isNum(raw.horizon_days) ? raw.horizon_days : null,
           effects: raw.effects || null,
-          forecastMetrics: raw.forecast_metrics || null,
+          forecastMetrics: raw.forecast_metrics || (raw.model_card && raw.model_card.forecast) || null,
+          modelCard: raw.model_card || null,
           illustrative: raw.illustrative !== false,
         },
         patients,
@@ -79,6 +80,10 @@ function normalisePatient(c) {
   const tEnd = Math.max(...keys.map((k) => scenarios[k].day[scenarios[k].day.length - 1]));
   const cells = c.grid && isNum(c.grid.cells) ? c.grid.cells : null;
   const spacing = c.grid && isNum(c.grid.spacing_mm) ? c.grid.spacing_mm : null;
+  // physical edge of the box that both the 64^3 grid and the 32^3 display cube cover
+  const fb = Array.isArray(c.frames_box_mm) && c.frames_box_mm.length === 3 && c.frames_box_mm.every(isNum) ? c.frames_box_mm : null;
+  const cl = c.clinical && typeof c.clinical === "object" ? c.clinical : {};
+  const str = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
   const sch = c.recorded_schedule || {};
   const p = {
     uid: c.uid,
@@ -88,7 +93,7 @@ function normalisePatient(c) {
     rho: isNum(c.rho) ? c.rho : null,
     delta: isNum(c.delta) ? c.delta : null,
     D: isNum(c.D) ? c.D : null,
-    boxMm: cells && spacing ? cells * spacing : null,
+    boxMm: fb ? fb : cells && spacing ? [cells * spacing, cells * spacing, cells * spacing] : null,
     gridCells: cells,
     spacingMm: spacing,
     observed,
@@ -102,9 +107,13 @@ function normalisePatient(c) {
     lastScan,
     firstScan: observed[0].day,
     tEnd,
-    // optional clinical / risk fields, shown only when the baker provides them
-    idh: c.idh ?? (c.clinical && c.clinical.idh) ?? null,
-    whoGrade: c.who_grade ?? (c.clinical && c.clinical.who_grade) ?? null,
+    // clinical fields; any of them may be null
+    age: isNum(cl.age_years) ? cl.age_years : null,
+    sex: str(cl.sex),
+    whoGrade: isNum(cl.who_grade) ? cl.who_grade : null,
+    idh: str(cl.idh),
+    mgmt: str(cl.mgmt),
+    diagnosis: str(cl.diagnosis),
   };
   p.hasFrames = keys.some((k) => scenarios[k].frames) || !!p.observedFrames;
   p.lastBurden = observed[observed.length - 1].seed;

@@ -38,7 +38,7 @@ export class Picker {
     els.list.addEventListener("keydown", (e) => this.onKey(e));
     els.list.addEventListener("focus", () => this.paint());
     new ResizeObserver(() => this.paint()).observe(els.list);
-    for (const k of ["q", "status", "sort", "frames", "tx"]) els[k].addEventListener(k === "q" ? "input" : "change", () => this.apply());
+    for (const k of ["q", "status", "sort", "frames", "tx", "idh", "grade"]) els[k].addEventListener(k === "q" ? "input" : "change", () => this.apply());
   }
 
   setPatients(list) {
@@ -46,23 +46,37 @@ export class Picker {
     const sel = this.els.status;
     const seen = [...new Set(list.map((p) => p.status).filter(Boolean))];
     sel.innerHTML = `<option value="">Any</option>` + seen.map((s) => `<option value="${esc(s)}">${esc(statusInfo(s).short)}</option>`).join("");
+    // IDH and WHO grade filters appear only when some patient has the field
+    const fill = (select, wrap, values, label) => {
+      wrap.hidden = values.length === 0;
+      const hasMissing = list.some((p) => values.length && label(p) === null);
+      select.innerHTML = `<option value="">Any</option>` + values.map((v) => `<option value="${esc(String(v))}">${esc(String(v))}</option>`).join("")
+        + (hasMissing ? `<option value="__na">${NA}</option>` : "");
+    };
+    const idhs = [...new Set(list.map((p) => p.idh).filter(Boolean))].sort();
+    const grades = [...new Set(list.map((p) => p.whoGrade).filter(isNum))].sort((a, b) => a - b);
+    fill(this.els.idh, this.els.idhWrap, idhs, (p) => p.idh);
+    fill(this.els.grade, this.els.gradeWrap, grades, (p) => (isNum(p.whoGrade) ? p.whoGrade : null));
     this.apply();
   }
 
   apply() {
-    const { q, status, sort, frames, tx } = this.els;
+    const { q, status, sort, frames, tx, idh, grade } = this.els;
     const needle = q.value.trim().toLowerCase();
     let r = this.all.filter((p) =>
       (!needle || p.id.toLowerCase().includes(needle) || p.uid.toLowerCase().includes(needle))
       && (!status.value || p.status === status.value)
       && (!frames.checked || p.hasFrames)
-      && (!tx.checked || p.hasTreatment));
+      && (!tx.checked || p.hasTreatment)
+      && (!idh.value || (idh.value === "__na" ? !p.idh : p.idh === idh.value))
+      && (!grade.value || (grade.value === "__na" ? !isNum(p.whoGrade) : String(p.whoGrade) === grade.value)));
     const by = sort.value;
     const num = (v, dir) => (isNum(v) ? v * dir : Infinity);
     r.sort((a, b) => {
       if (by === "last") return num(a.lastBurden, -1) - num(b.lastBurden, -1);
       if (by === "growth") return num(a.forecastChangePct, -1) - num(b.forecastChangePct, -1);
       if (by === "scans") return b.observed.length - a.observed.length;
+      if (by === "age") return num(a.age, 1) - num(b.age, 1);
       if (by === "span") return b.lastScan - a.lastScan;
       return a.id.localeCompare(b.id, undefined, { numeric: true });
     });
@@ -121,7 +135,7 @@ export class Picker {
       const sel = p.uid === this.selected;
       const cur = i === this.cursor && document.activeElement === el;
       h += `<div class="prow${cur ? " is-active-desc" : ""}" role="option" id="opt-${esc(p.id)}" data-i="${i}" aria-selected="${sel}" style="top:${i * ROW}px">`
-        + `<span><span class="pid">${esc(p.id)}</span><span class="pmeta"><span class="${st.cls}"><span class="status-mark"></span>${esc(st.short)}</span> · ${p.observed.length} scans · ${span}${p.hasFrames ? "" : " · no 3D"}</span></span>`
+        + `<span><span class="pid">${esc(p.id)}</span><span class="pmeta"><span class="${st.cls}"><span class="status-mark"></span>${esc(st.short)}</span> · ${p.observed.length} scans · ${span}${p.idh ? ` · IDH ${esc(p.idh)}` : ""}${p.hasFrames ? "" : " · no 3D"}</span></span>`
         + `${spark(p)}</div>`;
     }
     this.inner.innerHTML = h;
