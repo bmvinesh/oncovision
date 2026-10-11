@@ -1,0 +1,172 @@
+{
+  "with_treatment_features": {
+    "n": 1112,
+    "mae_log_ratio": 0.47465277221147484,
+    "baseline_cohort_median_mae": 0.4869214382383369,
+    "baseline_no_change_mae": 0.48726320283022706,
+    "spearman": 0.4103947623618295,
+    "direction_accuracy": 0.6652314316469322,
+    "direction_accuracy_cohort_median": 0.6092572658772875,
+    "by_dataset": {
+      "ucsf_lptdg": {
+        "n": 298,
+        "mae_log_ratio": 0.2215450552235672,
+        "baseline_cohort_median_mae": 0.19816473416029715,
+        "baseline_no_change_mae": 0.1878431723742765,
+        "spearman": 0.2538108067725809,
+        "direction_accuracy": 0.5841584158415841,
+        "direction_accuracy_cohort_median": 0.6683168316831684
+      },
+      "mu_glioma_post": {
+        "n": 333,
+        "mae_log_ratio": 0.5287959248591233,
+        "baseline_cohort_median_mae": 0.5478346068326843,
+        "baseline_no_change_mae": 0.5511747486565146,
+        "spearman": 0.38188585382150064,
+        "direction_accuracy": 0.6644518272425249,
+        "direction_accuracy_cohort_median": 0.6212624584717608
+      },
+      "ucsd_ptgbm": {
+        "n": 52,
+        "mae_log_ratio": 0.7452591225126757,
+        "baseline_cohort_median_mae": 0.6929791212995802,
+        "baseline_no_change_mae": 0.7449744132299868,
+        "spearman": 0.2787501067190301,
+        "direction_accuracy": 0.76,
+        "direction_accuracy_cohort_median": 0.7
+      },
+      "lumiere": {
+        "n": 429,
+        "mae_log_ratio": 0.575643214204638,
+        "baseline_cohort_median_mae": 0.6152440796233101,
+        "baseline_no_change_mae": 0.6144045580165489,
+        "spearman": 0.4917266849273195,
+        "direction_accuracy": 0.6968085106382979,
+        "direction_accuracy_cohort_median": 0.5558510638297872
+      }
+    }
+  },
+  "without_treatment_features": {
+    "n": 1112,
+    "mae_log_ratio": 0.4751576391091749,
+    "baseline_cohort_median_mae": 0.4869214382383369,
+    "baseline_no_change_mae": 0.48726320283022706,
+    "spearman": 0.4125954354893962,
+    "direction_accuracy": 0.6749192680301399,
+    "direction_accuracy_cohort_median": 0.6092572658772875,
+    "by_dataset": {
+      "ucsf_lptdg": {
+        "n": 298,
+        "mae_log_ratio": 0.22365993144930238,
+        "baseline_cohort_median_mae": 0.19816473416029715,
+        "baseline_no_change_mae": 0.1878431723742765,
+        "spearman": 0.25848278751692816,
+        "direction_accuracy": 0.5891089108910891,
+        "direction_accuracy_cohort_median": 0.6683168316831684
+      },
+      "mu_glioma_post": {
+        "n": 333,
+        "mae_log_ratio": 0.5290967942887973,
+        "baseline_cohort_median_mae": 0.5478346068326843,
+        "baseline_no_change_mae": 0.5511747486565146,
+        "spearman": 0.38608390513015,
+        "direction_accuracy": 0.6777408637873754,
+        "direction_accuracy_cohort_median": 0.6212624584717608
+      },
+      "ucsd_ptgbm": {
+        "n": 52,
+        "mae_log_ratio": 0.7361292611856598,
+        "baseline_cohort_median_mae": 0.6929791212995802,
+        "baseline_no_change_mae": 0.7449744132299868,
+        "spearman": 0.33142661999487744,
+        "direction_accuracy": 0.78,
+        "direction_accuracy_cohort_median": 0.7
+      },
+      "lumiere": {
+        "n": 429,
+        "mae_log_ratio": 0.5763558998547472,
+        "baseline_cohort_median_mae": 0.6152440796233101,
+        "baseline_no_change_mae": 0.6144045580165489,
+        "spearman": 0.4885676684712721,
+        "direction_accuracy": 0.7047872340425532,
+        "direction_accuracy_cohort_median": 0.5558510638297872
+      }
+    }
+  },
+  "leave_one_dataset_out": {
+    "ucsf_lptdg": {
+      "n": 298,
+      "mae_log_ratio": 0.438160422722906,
+      "baseline_cohort_median_mae": 0.21133599535877667,
+      "baseline_no_change_mae": 0.1878431723742765,
+      "spearman": 0.2505276556400178,
+      "direction_accuracy": 0.504950495049505,
+      "direction_accuracy_cohort_median": 0.6683168316831684
+    },
+    "mu_glioma_post": {
+      "n": 333,
+      "mae_log_ratio": 0.5675636149840636,
+      "baseline_cohort_median_mae": 0.5469187432451024,
+      "baseline_no_change_mae": 0.5511747486565146,
+      "spearman": 0.34905170919179834,
+      "direction_accuracy": 0.6445182724252492,
+      "direction_accuracy_cohort_median": 0.6212624584717608
+    },
+    "ucsd_ptgbm": {
+      "n": 52,
+      "mae_log_ratio": 0.7538496128169331,
+      "baseline_cohort_median_mae": 0.6952793334891274,
+      "baseline_no_change_mae": 0.7449744132299868,
+      "spearman": 0.30718005634764795,
+      "direction_accuracy": 0.8,
+      "direction_accuracy_cohort_median": 0.7
+    },
+    "lumiere": {
+      "n": 429,
+      "mae_log_ratio": 0.6104334671657848,
+      "baseline_cohort_median_mae": 0.6153251336185359,
+      "baseline_no_change_mae": 0.6144045580165489,
+      "spearman": 0.33825227388197865,
+      "direction_accuracy": 0.6037234042553191,
+      "direction_accuracy_cohort_median": 0.5558510638297872
+    }
+  },
+  "usable_within_cohort": true,
+  "usable_across_cohorts": false,
+  "lodo_datasets_better_than_baseline": "1 of 4",
+  "usable": false,
+  "verdict": "model beats the cohort-median baseline only in grouped CV within the pooled cohorts (a modest ranking signal); it does NOT transfer to an unseen cohort, so do not present its predictions as skilled for new data",
+  "n_intervals": 1112,
+  "n_patients": 565,
+  "n_by_dataset": {
+    "lumiere": 429,
+    "mu_glioma_post": 333,
+    "ucsf_lptdg": 298,
+    "ucsd_ptgbm": 52
+  },
+  "target": "ln((V1+1000)/(V0+1000))/dt, whole tumour without cavity, per day",
+  "features": [
+    "age",
+    "grade",
+    "ncr_mm3",
+    "edema_mm3",
+    "et_mm3",
+    "rc_mm3",
+    "tumor_mm3",
+    "sex_F",
+    "sex_M",
+    "idh_mut",
+    "idh_wt",
+    "mgmt_methylated",
+    "mgmt_unmethylated",
+    "t_start",
+    "dt",
+    "interval_index",
+    "x_temozolomide",
+    "x_lomustine_pcv",
+    "x_bevacizumab",
+    "x_ttfields",
+    "x_immunotherapy",
+    "rt_gy"
+  ]
+}

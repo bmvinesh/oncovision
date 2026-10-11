@@ -4,7 +4,7 @@ Local glioma growth forecasting on the ASUS Ascent GX10: a molecular risk model,
 
 OncoVision is the continuation of **OncoPulse** ([QBIHack](https://github.com/praneethmandalapu/QBIHack), built on an M4 MacBook Air). The product and design carry over. What changes is scale: the GX10 lets us use the whole cohort and more datasets instead of 20 hand-picked patients, and run the simulation and the language model on the device.
 
-**Status (2026-10-11): treatment-aware simulation, three-dataset ingest, pooled risk model and a what-if viewer prototype exist; see [treatment effects: method and measured results](docs/runbooks/treatment-effects.md) and [dataset downloads](docs/runbooks/data-downloads.md). Measured results are modest and stated as such there: drug effects are not identifiable from the retrospective cohorts, so the what-if uses literature priors and is labelled illustrative.**
+**Status (2026-10-11): treatment-aware simulation, three-dataset ingest, pooled risk model and a what-if viewer prototype exist; see [trained models](docs/runbooks/models.md), [treatment effects: method and measured results](docs/runbooks/treatment-effects.md) and [dataset downloads](docs/runbooks/data-downloads.md). Measured results are modest and stated as such there: drug effects are not identifiable from the retrospective cohorts, so the what-if uses literature priors and is labelled illustrative.**
 
 ## Start here
 

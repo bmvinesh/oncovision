@@ -1,0 +1,43 @@
+{
+  "model": "xgboost binary:logistic, max_depth 3, 300 trees",
+  "target": "deceased (death recorded during follow-up)",
+  "features": [
+    "age",
+    "grade",
+    "ncr_mm3",
+    "edema_mm3",
+    "et_mm3",
+    "rc_mm3",
+    "tumor_mm3",
+    "sex_F",
+    "sex_M",
+    "idh_mut",
+    "idh_wt",
+    "mgmt_methylated",
+    "mgmt_unmethylated"
+  ],
+  "n_train": 676,
+  "n_deceased": 371,
+  "trained_on": {
+    "ucsf_lptdg": 298,
+    "mu_glioma_post": 202,
+    "ucsd_ptgbm": 176
+  },
+  "mean_abs_shap": {
+    "et_mm3": 0.6277617812156677,
+    "grade": 0.30463001132011414,
+    "tumor_mm3": 0.2743488848209381,
+    "rc_mm3": 0.2271096259355545,
+    "idh_mut": 0.21447569131851196,
+    "idh_wt": 0.1932467371225357,
+    "edema_mm3": 0.19175370037555695,
+    "age": 0.19109170138835907,
+    "ncr_mm3": 0.19034983217716217,
+    "sex_F": 0.12926553189754486,
+    "mgmt_methylated": 0.11711177974939346,
+    "mgmt_unmethylated": 0.03311726450920105,
+    "sex_M": 0.026995016261935234
+  },
+  "scores": "use out-of-fold risk (risk_pooled_metrics_scores.parquet) for display; the saved model is for scoring new patients",
+  "caveat": "relative prognostic rank; follow-up differs by cohort; weak external transfer (see risk_pooled_metrics.json leave_one_dataset_out)"
+}

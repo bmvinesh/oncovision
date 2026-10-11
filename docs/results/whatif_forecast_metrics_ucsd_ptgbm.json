@@ -1,0 +1,78 @@
+{
+ "dataset": "ucsd_ptgbm",
+ "D_mm2_per_day": 0.1,
+ "horizon_days": 180.0,
+ "forecast_metrics": {
+  "prior_shrunk_cv": {
+   "mae_log_ratio": 0.9425780644783857,
+   "weight_on_patient_rho_all_data": 0.25
+  },
+  "none_shrunk_cv": {
+   "mae_log_ratio": 0.8485177261759063,
+   "weight_on_patient_rho_all_data": 0.25
+  },
+  "prior_w0": {
+   "mae_log_ratio": 0.8330269105403139,
+   "bias": 0.26414794492079186,
+   "direction_accuracy": 0.8125
+  },
+  "prior_w0.25": {
+   "mae_log_ratio": 0.7804154737222785,
+   "bias": 0.06830659971489711,
+   "direction_accuracy": 0.75
+  },
+  "prior_w0.5": {
+   "mae_log_ratio": 0.9203190491863539,
+   "bias": -0.18449881416667233,
+   "direction_accuracy": 0.5625
+  },
+  "prior_w0.75": {
+   "mae_log_ratio": 1.224312473554966,
+   "bias": -0.4601927184272123,
+   "direction_accuracy": 0.5
+  },
+  "prior_w1": {
+   "mae_log_ratio": 1.5302552452746123,
+   "bias": -0.7513287198975833,
+   "direction_accuracy": 0.5
+  },
+  "none_w0": {
+   "mae_log_ratio": 0.7244080320119228,
+   "bias": 0.16809913844040514,
+   "direction_accuracy": 0.875
+  },
+  "none_w0.25": {
+   "mae_log_ratio": 0.693691297998976,
+   "bias": -0.15664589962636194,
+   "direction_accuracy": 0.75
+  },
+  "none_w0.5": {
+   "mae_log_ratio": 1.0997382703815926,
+   "bias": -0.5202469612613159,
+   "direction_accuracy": 0.4375
+  },
+  "none_w0.75": {
+   "mae_log_ratio": 1.512252214949099,
+   "bias": -0.9045335891604352,
+   "direction_accuracy": 0.3125
+  },
+  "none_w1": {
+   "mae_log_ratio": 1.9256858669074517,
+   "bias": -1.3054336552687689,
+   "direction_accuracy": 0.3125
+  },
+  "cohort_median_rate": {
+   "mae_log_ratio": 0.7357124630669151,
+   "bias": 0.2480958778417982,
+   "direction_accuracy": 0.875
+  },
+  "no_change": {
+   "mae_log_ratio": 0.6567065155575771,
+   "bias": -0.47580340105631963,
+   "direction_accuracy": 0.0
+  },
+  "n_forecasts": 16,
+  "n_patients": 14,
+  "note": "ratio forecasts of the next scan's seed burden; w = weight on the patient's own calibrated rho vs the cohort median"
+ }
+}
