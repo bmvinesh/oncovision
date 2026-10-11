@@ -213,6 +213,7 @@ def ucsd_patient_treatments(df: pd.DataFrame) -> dict[str, PatientTreatment]:
     c_av, c_av_last = col("Avastin® (bevacizumab)"), col("last Avastin")
     c_rtn = col("Number of radiation courses")
     c_death = col("Date of death")
+    c_follow = col("Date of last follow-up")
     rows: dict[str, list] = {}
     for _, r in df.iterrows():
         m = UCSD_ID_RE.match(str(r["ID"]))
@@ -222,12 +223,18 @@ def ucsd_patient_treatments(df: pd.DataFrame) -> dict[str, PatientTreatment]:
     out: dict[str, PatientTreatment] = {}
     for pid, lst in rows.items():
         lst.sort(key=lambda x: x[0])
-        # acq_k - surgery_ref = -(days from acq_k to initial surgery)
+        # Each column "days from acquisition to <fixed date>" gives acq_k - date = -value, so any such
+        # column that is present for every scan of the patient anchors the scan spacing.  Use the first
+        # one available (initial surgery, first radiation, chemo start, last follow-up, death).
         a = {}
-        for k, r in lst:
-            v = _num(r[c_surg])
-            if not np.isnan(v):
-                a[k] = -v
+        for anchor in (c_surg, c_rt1, c_chemo_start, c_follow, c_death):
+            vals = {k: _num(r[anchor]) for k, r in lst}
+            if all(not np.isnan(v) for v in vals.values()):
+                a = {k: -v for k, v in vals.items()}
+                break
+        if not a:
+            vals = {k: _num(r[c_surg]) for k, r in lst}
+            a = {k: -v for k, v in vals.items() if not np.isnan(v)}
         if not a:
             continue
         base = min(a.values())

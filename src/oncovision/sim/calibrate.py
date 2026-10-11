@@ -29,7 +29,7 @@ class CalItem:
     dx: float                   # mm per grid cell
 
 
-def _arrays(items: list[CalItem], effects: dict, D: float, dt_cap: float = 1.0):
+def _arrays(items: list[CalItem], effects: dict, D: float, dt_cap: float = 3.0):
     # one common step size: the smallest CFL-safe dt among items, bounded by 1 day
     dts = [n_steps_for(it.days, D, it.dx, dt_cap)[1] for it in items]
     dt = min(dts)
@@ -60,13 +60,14 @@ def _end_burden(items, rho, delta, effects, D, backend, device, packed: dict | N
     pk = packed or pack(items, effects, D)
     # items with different lengths: all rates are zero after an item's own end
     kill = np.where(pk["active"], pk["kill"] + np.asarray(delta, np.float32)[:, None], 0.0).astype(np.float32)
+    extra = {"record_at": sorted(set(pk["ends"].tolist()))} if backend == "torch" else {}
     res = solve(pk["seeds"], backend=backend, device=device, rho=rho, D=pk["D"], dx=pk["dx"], n_steps=pk["n"],
-                dt=pk["dt"], kill=kill, growth=pk["growth"], surv=pk["surv"], n_frames=0)
+                dt=pk["dt"], kill=kill, growth=pk["growth"], surv=pk["surv"], n_frames=0, **extra)
     return res.burden[np.arange(len(items)), pk["ends"]], res.burden[:, 0]
 
 
 def calibrate_batch(items: list[CalItem], effects: dict, *, D: float = 0.1, rho_max: float = 0.5,
-                    delta_max: float = 0.5, iters: int = 22, backend: str = "numpy", device: str = "cpu"):
+                    delta_max: float = 0.5, iters: int = 15, backend: str = "numpy", device: str = "cpu"):
     """Returns dict of arrays: rho, delta, achieved_ratio, status (list)."""
     B = len(items)
     zero = np.zeros(B)
@@ -109,7 +110,7 @@ def calibrate_batch(items: list[CalItem], effects: dict, *, D: float = 0.1, rho_
 def counterfactual(seed, *, rho, delta, D, dx, days, t_start, schedule: Schedule, effects: dict,
                    n_frames: int = 0, backend: str = "numpy", device: str = "cpu"):
     """One patient forward run -> dict(t, burden, volume, frames)."""
-    n, dt = n_steps_for(days, D, dx, 1.0)
+    n, dt = n_steps_for(days, D, dx, 3.0)
     k, g, s = step_arrays(schedule, n, dt, effects, t_start=t_start)
     res = solve(seed[None], backend=backend, device=device, rho=rho, D=D, dx=dx, n_steps=n, dt=dt,
                 kill=(k + delta)[None], growth=g[None], surv=s[None], n_frames=n_frames)

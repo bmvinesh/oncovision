@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from pathlib import Path
 
 import nibabel as nib
@@ -57,6 +58,8 @@ def prepare_patient(g: pd.DataFrame, sched: dict, grid: int = 64):
 def run(dataset: str, processed: str, out_dir: str, device: str = "cpu", backend: str | None = None,
         max_patients: int | None = None, horizon: float = 180.0, min_burden_mm3: float = 500.0):
     backend = backend or ("torch" if device != "cpu" else "numpy")
+    t_0 = time.time()
+    log = lambda m: print(f"[{time.time() - t_0:7.1f}s] {m}", flush=True)
     P = Path(processed) / dataset
     tp = pd.read_parquet(P / "timepoints.parquet")
     sched = json.loads((P / "treatments.json").read_text())
@@ -72,11 +75,14 @@ def run(dataset: str, processed: str, out_dir: str, device: str = "cpu", backend
             p["uid"] = uid
             pats.append(p)
 
+    log(f"{len(pats)} patients prepared")
     eff_prior, eff_none = priors.prior_effects(), priors.no_effects()
     items = [CalItem(p["seeds"][0], float(p["days"][1] - p["days"][0]), float(p["days"][0]), p["schedule"],
                      p["burden"][1] / p["burden"][0], p["grid"].spacing_mm) for p in pats]
     cal_p = calibrate_batch(items, eff_prior, D=D_DEFAULT, backend=backend, device=device)
+    log("calibrated with prior effects")
     cal_n = calibrate_batch(items, eff_none, D=D_DEFAULT, backend=backend, device=device)
+    log("calibrated treatment-blind")
 
     # forecasts of later scans, one batch per model
     fc_rows, fc_items, meta = [], [], []
@@ -102,6 +108,7 @@ def run(dataset: str, processed: str, out_dir: str, device: str = "cpu", backend
             delta = np.array([cal[key]["delta"][i] * w for (i, _) in meta])
             pred[(key, w)] = _forward_ratio(fc_items, rho, delta, eff, backend, device)
 
+    log(f"forecasts done ({len(fc_items)} intervals)")
     rows = []
     for j, (i, k) in enumerate(meta):
         p = pats[i]
@@ -162,6 +169,8 @@ def run(dataset: str, processed: str, out_dir: str, device: str = "cpu", backend
                             "burden_mm3": [round(float(x), 1) for x in cf["burden"][::5]],
                             "volume_mm3": [round(float(x), 1) for x in cf["volume"][::5]]}
         g = p["g"]
+        if i % 20 == 0:
+            log(f"scenarios {i}/{len(pats)}")
         cases.append({
             "uid": p["uid"], "status": cal_p["status"][i], "rho": rho, "delta": delta, "D": D_DEFAULT,
             "grid": {"cells": p["grid"].grid, "spacing_mm": p["grid"].spacing_mm},

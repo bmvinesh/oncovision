@@ -16,6 +16,8 @@ import json
 import os
 import re
 from concurrent.futures import ProcessPoolExecutor
+
+from ..treatment.schedule import Schedule
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -30,6 +32,9 @@ LABEL_MAPS = {
     "mu_glioma_post": {1: "ncr", 2: "edema", 3: "et", 4: "rc"},
     # UCSD-PTGBM BraTS 2024 post-treatment scheme: 1 NETC, 2 SNFH, 3 ET, 4 RC (values 1-4 seen in real masks)
     "ucsd_ptgbm": {1: "ncr", 2: "edema", 3: "et", 4: "rc"},
+    # LUMIERE, DeepBraTumIA atlas-space seg_mask.nii.gz: 1 enhancing core, 2 necrotic/non-enhancing, 3 oedema
+    # (matches measured_volumes_in_mm3.json voxel for voxel; no resection-cavity label in this dataset)
+    "lumiere": {1: "et", 2: "ncr", 3: "edema"},
 }
 REGIONS = ["ncr", "edema", "et", "rc"]
 
@@ -57,14 +62,37 @@ def discover(dataset: str, raw: str | Path) -> list[Scan]:
             if m and not os.path.exists(p + ".aspx"):
                 out.append(Scan(dataset, m.group(1), int(m.group(2)), p))
     elif dataset == "ucsd_ptgbm":
-        for p in glob.glob(os.path.join(raw, "imaging", "UCSD-PTGBM", "UCSD-PTGBM-*", "*_BraTS_tumor_seg.nii.gz")):
-            m = re.search(r"UCSD-PTGBM-(\d+)_(\d+)_BraTS_tumor_seg", p)
-            if m and not os.path.exists(p + ".aspx"):
+        # main package, then the BraTS-2024 test part; a scan present in both is taken once
+        pats = [os.path.join(raw, "imaging", "UCSD-PTGBM", "UCSD-PTGBM-*", "*_BraTS_tumor_seg.nii.gz"),
+                os.path.join(raw, "imaging_brats_test", "PKG*", "UCSD-PTGBM-BraTS-2024-test-set", "UCSD-PTGBM-*",
+                             "*_BraTS_tumor_seg.nii.gz")]
+        seen = set()
+        for pat in pats:
+            for p in glob.glob(pat):
+                m = re.search(r"UCSD-PTGBM-(\d+)_(\d+)_BraTS_tumor_seg", p)
+                if not m or os.path.exists(p + ".aspx") or (m.group(1), m.group(2)) in seen:
+                    continue
+                seen.add((m.group(1), m.group(2)))
                 d = os.path.dirname(p)
                 cell = glob.glob(os.path.join(d, "*_total_cellular_tumor_seg.nii.gz"))
                 ok = cell and not os.path.exists(cell[0] + ".aspx")
-                out.append(Scan(dataset, m.group(1), int(m.group(2)), p,
-                                {"cellular_path": cell[0] if ok else None}))
+                out.append(Scan(dataset, m.group(1), int(m.group(2)), p, {"cellular_path": cell[0] if ok else None}))
+    elif dataset == "lumiere":
+        rano = {}
+        csv = os.path.join(raw, "LUMIERE-ExpertRating-v202211.csv")
+        if os.path.exists(csv):
+            r = pd.read_csv(csv)
+            for _, row in r.iterrows():
+                rano[(str(row.iloc[0]), str(row.iloc[1]))] = str(row.iloc[4]).strip()
+        pat = os.path.join(raw, "seg", "Imaging", "Patient-*", "week-*", "DeepBraTumIA-segmentation", "atlas",
+                           "segmentation", "seg_mask.nii.gz")
+        for p in glob.glob(pat):
+            m = re.search(r"(Patient-\d+)/(week-(\d+)(?:-(\d))?)/", p)
+            if not m:
+                continue
+            week, sub = int(m.group(3)), int(m.group(4) or 0)
+            out.append(Scan(dataset, m.group(1), week * 10 + sub, p,
+                            {"week": week, "folder": m.group(2), "rano": rano.get((m.group(1), m.group(2)))}))
     else:
         raise ValueError(f"no adapter for {dataset}")
     return sorted(out, key=lambda s: (s.patient_id, s.tp_key))
@@ -87,8 +115,9 @@ def scan_volumes(scan: Scan) -> dict:
            "tp_key": scan.tp_key, "mask_path": scan.mask_path, "shape": list(a.shape),
            "spacing": [float(z) for z in zooms]}
     unknown = set(np.unique(a).astype(int).tolist()) - set(lm) - {0}
-    for lab, name in lm.items():
-        row[f"{name}_mm3"] = float((a == lab).sum() * vox)
+    inv = {v: k for k, v in lm.items()}
+    for name in REGIONS:
+        row[f"{name}_mm3"] = float((a == inv[name]).sum() * vox) if name in inv else 0.0
     row["tumor_mm3"] = row["ncr_mm3"] + row["edema_mm3"] + row["et_mm3"]     # cavity excluded
     row["core_mm3"] = row["ncr_mm3"] + row["et_mm3"]
     bb = _bbox(np.isin(a, [1, 2, 3]))
@@ -105,6 +134,10 @@ def scan_volumes(scan: Scan) -> dict:
     if cp:
         c = np.asarray(nib.load(cp).dataobj)
         row["cellular_mm3"] = float((c > 0).sum() * vox)
+    if scan.extra.get("rano"):
+        row["rano"] = scan.extra["rano"]
+        if scan.extra["rano"].lower().startswith("pre-op"):
+            flags.append("pre_op")
     row["qc_flags"] = ",".join(flags) or "ok"
     return row
 
@@ -116,9 +149,22 @@ def build(dataset: str, raw: str | Path, clinical_xlsx: str | Path, workers: int
         pt = C.mu_patient_treatments(C.load_mu_clinical(clinical_xlsx))
     elif dataset == "ucsd_ptgbm":
         pt = C.ucsd_patient_treatments(C.load_ucsd_clinical(clinical_xlsx))
+    elif dataset == "lumiere":
+        pt = None
     else:
         raise ValueError(dataset)
     scans = discover(dataset, raw)
+    if dataset == "lumiere":
+        # scan day = 7 * week; treatment is not recorded in this dataset
+        pt = {}
+        for sc in scans:
+            if (sc.extra.get("rano") or "").lower().startswith("pre-op"):
+                continue          # surgery sits between the pre-op and post-op scan
+            e = pt.setdefault(sc.patient_id, C.PatientTreatment(
+                sc.patient_id, "lumiere", {}, Schedule(),
+                assumptions=["treatment is not recorded in the dataset"]))
+            e.scan_days[sc.tp_key] = 7.0 * sc.extra["week"] + 0.5 * (sc.tp_key % 10)
+        scans = [s for s in scans if s.patient_id in pt and s.tp_key in pt[s.patient_id].scan_days]
     with ProcessPoolExecutor(workers) as ex:
         rows = list(ex.map(scan_volumes, scans, chunksize=4))
     df = pd.DataFrame(rows)
@@ -141,7 +187,7 @@ def build(dataset: str, raw: str | Path, clinical_xlsx: str | Path, workers: int
     for pid, off in shift.items():
         p = pt[pid]
         s = p.schedule
-        from ..treatment.schedule import DrugCourse, RadiationCourse, Schedule
+        from ..treatment.schedule import DrugCourse, RadiationCourse
         sh = Schedule(
             [DrugCourse(c.agent, c.start_day - off, c.end_day - off, c.cycle_days, c.on_days, c.intensity)
              for c in s.drugs],

@@ -78,7 +78,7 @@ def _prep(u0, rho, D, dx, kill, growth, surv, n_steps):
 
 
 def solve_numpy(u0, *, rho, D, dx=1.0, n_steps, dt=1.0, kill=None, growth=None, surv=None,
-                n_frames=None, threshold=0.5) -> SolveResult:
+                n_frames=None, threshold=0.5, record_at=None) -> SolveResult:
     u0, rho, D, dx, kill, growth, surv = _prep(u0, rho, D, dx, kill, growth, surv, n_steps)
     B = u0.shape[0]
     if np.any(D * dt / (dx * dx) > 1.0 / 6.0 + 1e-9):
@@ -117,7 +117,7 @@ def _lap_torch(u):
 
 
 def solve_torch(u0, *, rho, D, dx=1.0, n_steps, dt=1.0, kill=None, growth=None, surv=None,
-                n_frames=None, threshold=0.5, device="cpu") -> SolveResult:
+                n_frames=None, threshold=0.5, device="cpu", record_at=None) -> SolveResult:
     if torch is None:
         raise RuntimeError("torch is not installed")
     u0n, rhon, Dn, dxn, killn, growthn, survn = _prep(u0, rho, D, dx, kill, growth, surv, n_steps)
@@ -135,7 +135,11 @@ def solve_torch(u0, *, rho, D, dx=1.0, n_steps, dt=1.0, kill=None, growth=None, 
     burden = torch.zeros(B, n_steps + 1, device=dev)
     vol = torch.zeros(B, n_steps + 1, device=dev)
 
+    rec = None if record_at is None else set(int(x) for x in record_at) | {0}
+
     def record(i, uu):
+        if rec is not None and i not in rec:
+            return
         burden[:, i] = uu.sum(dim=(1, 2, 3, 4)) * vox
         vol[:, i] = (uu >= threshold).sum(dim=(1, 2, 3, 4)).float() * vox
 
