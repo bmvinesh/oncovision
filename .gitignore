@@ -1,0 +1,33 @@
+# Raw and bulk data never go in git. On the GX10 they live in /home/asus/data/oncovision.
+data/raw/
+data/processed/
+data/cache/
+*.npy
+*.npz
+*.nii
+*.nii.gz
+*.parquet
+!tests/fixtures/**
+
+# Baked viewer data is generated on the GX10 and published separately (see docs/contracts/data-contract.md)
+web/data/
+!web/data-fixture/**
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+# Node / OS / editors
+node_modules/
+.DS_Store
+.claude/
+.cursor/

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oncovision"
+version = "0.1.0"
+description = "Local glioma growth forecasting: risk model, PDE simulation, 3D viewer"
+requires-python = ">=3.11"
+# Core deps only. GPU/torch pins for the GX10 live in scripts/gx10/ (owner: Praneeth).
+dependencies = ["numpy", "scipy", "pandas", "nibabel"]
+
+[project.optional-dependencies]
+train = ["xgboost", "shap", "scikit-learn", "pyarrow", "openpyxl"]
+api = ["fastapi", "uvicorn", "httpx", "pydantic>=2"]
+viz = ["plotly", "scikit-image"]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
