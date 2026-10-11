@@ -55,6 +55,12 @@ def _load(path, dataset: str | None = None):
 
 def prepare_patient(g: pd.DataFrame, sched: dict, grid: int = 64):
     g = g.sort_values("day").reset_index(drop=True)
+    # drop scans less than a week after the previously kept one (duplicate or same-session studies)
+    keep, last = [], -1e9
+    for i, d in enumerate(g.day):
+        if d - last >= 7.0:
+            keep.append(i); last = d
+    g = g.iloc[keep].reset_index(drop=True)
     if len(g) < 2:
         return None
     ds = g.dataset.iloc[0] if "dataset" in g.columns else None

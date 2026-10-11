@@ -191,9 +191,22 @@ def evaluate(df: pd.DataFrame, repeats: int = 5, seed: int = 17) -> tuple[dict, 
         lodo[ds] = _metrics(y[te], m.predict(X[te]), dt[te], np.median(y[~te]))
     out["leave_one_dataset_out"] = lodo
     w = out["with_treatment_features"]
-    out["usable"] = bool(w["mae_log_ratio"] < w["baseline_cohort_median_mae"])
-    out["verdict"] = ("model beats the cohort-median baseline" if out["usable"] else
-                      "model does NOT beat the cohort-median baseline: do not present its predictions as skilled")
+    within = bool(w["mae_log_ratio"] < w["baseline_cohort_median_mae"])
+    n_lodo = len(lodo)
+    n_lodo_better = sum(v["mae_log_ratio"] < v["baseline_cohort_median_mae"] for v in lodo.values())
+    across = n_lodo > 0 and n_lodo_better > n_lodo / 2
+    out["usable_within_cohort"] = within
+    out["usable_across_cohorts"] = bool(across)
+    out["lodo_datasets_better_than_baseline"] = f"{n_lodo_better} of {n_lodo}"
+    out["usable"] = bool(within and across)
+    if within and across:
+        out["verdict"] = "model beats the cohort-median baseline within and across cohorts"
+    elif within:
+        out["verdict"] = ("model beats the cohort-median baseline only in grouped CV within the pooled cohorts "
+                          "(a modest ranking signal); it does NOT transfer to an unseen cohort, so do not present "
+                          "its predictions as skilled for new data")
+    else:
+        out["verdict"] = "model does NOT beat the cohort-median baseline: do not present its predictions as skilled"
     return out, oof_all["with_treatment_features"]
 
 
