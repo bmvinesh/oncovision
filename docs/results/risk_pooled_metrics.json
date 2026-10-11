@@ -1,0 +1,56 @@
+{
+  "n": 676,
+  "n_by_dataset": {
+    "ucsf_lptdg": 298,
+    "mu_glioma_post": 202,
+    "ucsd_ptgbm": 176
+  },
+  "deceased_rate_by_dataset": {
+    "mu_glioma_post": 0.48,
+    "ucsd_ptgbm": 0.841,
+    "ucsf_lptdg": 0.423
+  },
+  "within_dataset": {
+    "mu_glioma_post": {
+      "auc": 0.6644084437898871,
+      "std": 0.009380722693042945,
+      "n": 202
+    },
+    "ucsd_ptgbm": {
+      "auc": 0.6884169884169884,
+      "std": 0.030381417883560025,
+      "n": 176
+    },
+    "ucsf_lptdg": {
+      "auc": 0.7816076042820228,
+      "std": 0.01194243896911738,
+      "n": 298
+    }
+  },
+  "pooled": {
+    "auc": 0.740327868852459,
+    "std": 0.008327948962374073
+  },
+  "leave_one_dataset_out": {
+    "ucsf_lptdg": {
+      "auc": 0.7238372093023255,
+      "n_test": 298,
+      "n_train": 378
+    },
+    "mu_glioma_post": {
+      "auc": 0.5632793323514973,
+      "n_test": 202,
+      "n_train": 474
+    },
+    "ucsd_ptgbm": {
+      "auc": 0.46259652509652505,
+      "n_test": 176,
+      "n_train": 500
+    }
+  },
+  "idh_wild_type_alone_auc": {
+    "mu_glioma_post": 0.6103583426651735,
+    "ucsd_ptgbm": 0.6524321266968325,
+    "ucsf_lptdg": 0.7499572064361519
+  }
+}

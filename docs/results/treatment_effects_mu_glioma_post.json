@@ -1,0 +1,53 @@
+{
+  "measure": "core_mm3",
+  "n_intervals_total": 380,
+  "n_intervals_used": 333,
+  "n_patients": 144,
+  "excluded": {
+    "ok": 333,
+    "cavity_grew": 45,
+    "surgery_in_interval": 1,
+    "surgery_in_interval,cavity_grew": 1
+  },
+  "cohort_mean_growth_per_day": 0.004211765119456348,
+  "kill_per_day": {
+    "temozolomide": 0.0,
+    "bevacizumab": 0.002943698184590957,
+    "ttfields": 0.0
+  },
+  "k_per_gy": 0.0,
+  "ci95": {
+    "temozolomide": [
+      0.0,
+      0.005832115220651178
+    ],
+    "lomustine_pcv": null,
+    "bevacizumab": [
+      0.0,
+      0.00875552858997988
+    ],
+    "ttfields": [
+      0.0,
+      0.003012516972397361
+    ],
+    "immunotherapy": null,
+    "radiation": [
+      0.0,
+      0.01280105372733254
+    ]
+  },
+  "exposed_intervals": {
+    "temozolomide": 166,
+    "lomustine_pcv": 6,
+    "bevacizumab": 48,
+    "ttfields": 99,
+    "immunotherapy": 1
+  },
+  "cross_validation": {
+    "n_test_intervals": 333,
+    "mae_with_treatment": 0.8069974765175485,
+    "mae_no_treatment_baseline": 0.7572297835628269,
+    "relative_improvement": -0.06572336962310255
+  },
+  "caveat": "Association from observational post-operative scans (confounding by indication, surgery and steroids). Not a causal drug-efficacy estimate."
+}

@@ -1,0 +1,114 @@
+{
+ "dataset": "mu_glioma_post",
+ "D_mm2_per_day": 0.1,
+ "horizon_days": 180.0,
+ "effects": {
+  "source": "literature priors (see treatment/priors.py)",
+  "values": {
+   "temozolomide": {
+    "kill": 0.0,
+    "suppress": 0.2753623188405797
+   },
+   "ttfields": {
+    "kill": 0.0,
+    "suppress": 0.4029850746268657
+   },
+   "bevacizumab": {
+    "kill": 0.0,
+    "suppress": 0.41509433962264153
+   },
+   "lomustine_pcv": {
+    "kill": 0.0,
+    "suppress": 0.0
+   },
+   "immunotherapy": {
+    "kill": 0.0,
+    "suppress": 0.0
+   },
+   "radiation": {
+    "k_per_gy": 0.0115
+   }
+  },
+  "evidence": {
+   "temozolomide": "Stupp et al., NEJM 2005 (EORTC 26981/NCIC CE.3): RT+TMZ vs RT alone; median PFS 6.9 vs 5.0 months (overall survival HR 0.63 confirmed)",
+   "ttfields": "Stupp et al., JAMA 2017 (EF-14): TTFields + TMZ vs TMZ; median PFS 6.7 vs 4.0 months (HR 0.63)",
+   "bevacizumab": "Chinot et al., NEJM 2014 (AVAglio): median PFS 10.6 vs 6.2 months (HR 0.64); no overall-survival benefit (16.8 vs 16.7 months). Part of the PFS gain is imaging pseudo-response.",
+   "lomustine_pcv": "no trial-derived figure used; effect not modelled",
+   "immunotherapy": "no benefit shown in randomised glioblastoma trials; not modelled"
+  },
+  "radiation": "illustrative placeholder (60 Gy ~ 50% burden reduction); not a measured effect"
+ },
+ "forecast_metrics": {
+  "prior_shrunk_cv": {
+   "mae_log_ratio": 0.8816968473781105,
+   "weight_on_patient_rho_all_data": 0.25
+  },
+  "none_shrunk_cv": {
+   "mae_log_ratio": 0.8328784944759218,
+   "weight_on_patient_rho_all_data": 0.5
+  },
+  "prior_w0": {
+   "mae_log_ratio": 0.8277842804607695,
+   "bias": 0.5342385133493424,
+   "direction_accuracy": 0.6460176991150443
+  },
+  "prior_w0.25": {
+   "mae_log_ratio": 0.8227803734955599,
+   "bias": 0.4445085123157623,
+   "direction_accuracy": 0.6371681415929203
+  },
+  "prior_w0.5": {
+   "mae_log_ratio": 0.8246500826641427,
+   "bias": 0.2844513715036294,
+   "direction_accuracy": 0.5973451327433629
+  },
+  "prior_w0.75": {
+   "mae_log_ratio": 0.9177848680646835,
+   "bias": 0.09722876577236522,
+   "direction_accuracy": 0.5398230088495575
+  },
+  "prior_w1": {
+   "mae_log_ratio": 1.0795324139614608,
+   "bias": -0.10736765426466544,
+   "direction_accuracy": 0.47345132743362833
+  },
+  "none_w0": {
+   "mae_log_ratio": 0.844488313494052,
+   "bias": 0.599225946641958,
+   "direction_accuracy": 0.6460176991150443
+  },
+  "none_w0.25": {
+   "mae_log_ratio": 0.8177974916288009,
+   "bias": 0.4826899198378706,
+   "direction_accuracy": 0.6415929203539823
+  },
+  "none_w0.5": {
+   "mae_log_ratio": 0.8102573100282431,
+   "bias": 0.2959821031949148,
+   "direction_accuracy": 0.6283185840707964
+  },
+  "none_w0.75": {
+   "mae_log_ratio": 0.907170271730896,
+   "bias": 0.08247218969451309,
+   "direction_accuracy": 0.5398230088495575
+  },
+  "none_w1": {
+   "mae_log_ratio": 1.0668331150616956,
+   "bias": -0.14860895227376442,
+   "direction_accuracy": 0.5
+  },
+  "cohort_median_rate": {
+   "mae_log_ratio": 0.5452187606920261,
+   "bias": -0.011305215022467986,
+   "direction_accuracy": 0.6460176991150443
+  },
+  "no_change": {
+   "mae_log_ratio": 0.5584796962608367,
+   "bias": -0.1776585638209481,
+   "direction_accuracy": 0.0
+  },
+  "n_forecasts": 226,
+  "n_patients": 104,
+  "note": "ratio forecasts of the next scan's seed burden; w = weight on the patient's own calibrated rho vs the cohort median"
+ }
+}
