@@ -175,6 +175,8 @@ def ungrounded_numbers(text: str, claims: list[dict]) -> list[str]:
         x = float(tok)
         if abs(x) <= 12 and float(x).is_integer():       # counts like "three scans", "2 of 3"
             continue
+        if any(tok in c["text"] for c in claims):         # identifiers such as 0034 and verbatim quotes
+            continue
         d = _decimals(tok)
         ok = any(abs(round(q, d) - x) <= 0.5 * 10 ** (-d) + 1e-12 or abs(q - x) <= 0.01 * abs(q) + 1e-9
                  for p in pool for q in (p, abs(p)))

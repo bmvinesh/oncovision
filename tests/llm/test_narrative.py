@@ -58,3 +58,8 @@ def test_cache_returns_same_object(tmp_path):
 
 def test_think_blocks_are_stripped():
     assert N._strip_think("<think>hmm</think>Answer 12.4.") == "Answer 12.4."
+
+
+def test_patient_identifier_is_not_a_fabricated_number():
+    cl = [N._claim("Patient PatientID_0034 had 6 scans over 527 days.")]
+    assert N.ungrounded_numbers("Patient 0034 had 6 scans over 527 days.", cl) == []
