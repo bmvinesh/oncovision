@@ -6,11 +6,6 @@
 import { esc, isNum, NA, AGENT_LABEL, DATASET_LABEL } from "./format.js";
 
 /** Measured facts quoted from docs/runbooks/treatment-effects.md (Finding 2). Replace when the JSON carries them. */
-const RUNBOOK_FACTS = {
-  autocorr: { r: -0.02, pairs: 221 },
-  shrinkingBranch: { n: 71, of: 150 },
-};
-
 const DS_SHORT = { ucsf_lptdg: "UCSF", mu_glioma_post: "MU", ucsd_ptgbm: "UCSD" };
 const DS_ORDER = ["ucsf_lptdg", "mu_glioma_post", "ucsd_ptgbm"];
 const dsShort = (k) => DS_SHORT[k] || DATASET_LABEL[k] || k;
@@ -316,13 +311,22 @@ export function renderFromData(cohort) {
     ftb.innerHTML = "";
   }
 
-  // measured facts quoted from the runbook (not yet in the data file)
-  const ac = RUNBOOK_FACTS.autocorr;
-  set("mc-autocorr",
-    `<span class="tag tag-measured">measured</span> The correlation between a patient's growth rate in one interval and the next is <strong>${ac.r.toFixed(2)}</strong> (${ac.pairs} consecutive interval pairs), so a method that extrapolates a patient's own history has nothing to work with here. `
-    + `<span class="note">Source: docs/runbooks/treatment-effects.md, Finding 2.</span>`);
-  const li = document.createElement("li");
-  li.textContent = `In the full run, ${RUNBOOK_FACTS.shrinkingBranch.n} of ${RUNBOOK_FACTS.shrinkingBranch.of} first-interval calibrations needed the shrinking branch, where growth rate is held fixed and only a loss rate is fitted.`;
+  // measured facts from the data file (model_card.growth_rate_autocorrelation, model_card.calibration)
+  const raw = m.modelCard || {};
+  const gac = raw.growth_rate_autocorrelation;
+  if (gac && isNum(gac.r)) {
+    set("mc-autocorr",
+      `<span class="tag tag-measured">measured</span> The correlation between a patient's growth rate in one interval and the next is <strong>${gac.r.toFixed(2)}</strong> (${gac.n_pairs} consecutive interval pairs), so a method that extrapolates a patient's own history has nothing to work with here. `
+      + `<span class="note">Source: docs/runbooks/treatment-effects.md, Finding 2.</span>`);
+  } else {
+    set("mc-autocorr", `Growth-rate persistence between intervals is ${NA} in this data file.`);
+  }
+  const cal = raw.calibration;
   const lim = $("mc-limits");
-  if (lim && !lim.querySelector("[data-runbook]")) { li.dataset.runbook = "1"; lim.appendChild(li); }
+  if (cal && isNum(cal.n_shrinking) && lim && !lim.querySelector("[data-runbook]")) {
+    const li = document.createElement("li");
+    li.textContent = `In the full run, ${cal.n_shrinking} of ${cal.n_patients} first-interval calibrations needed the shrinking branch, where growth rate is held fixed and only a loss rate is fitted.`;
+    li.dataset.runbook = "1";
+    lim.appendChild(li);
+  }
 }

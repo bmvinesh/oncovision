@@ -43,6 +43,7 @@
     "ttfields": 99,
     "immunotherapy": 1
   },
+  "radiation_exposed_intervals": 25,
   "cross_validation": {
     "n_test_intervals": 333,
     "mae_with_treatment": 0.8069974765175485,

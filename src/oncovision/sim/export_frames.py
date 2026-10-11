@@ -30,7 +30,25 @@ N_FRAMES = 26
 DISPLAY = 32
 
 
-def build_model_card(treatment_effects: dict, risk: dict, forecast: dict) -> dict:
+def growth_rate_autocorrelation(cases: list[dict]) -> dict:
+    """Correlation between a patient's burden growth rate in one interval and the next (interval pairs)."""
+    prev, nxt = [], []
+    for c in cases:
+        o = c["observed"]
+        b = [x["seed_burden_mm3"] for x in o]
+        t = [x["day"] for x in o]
+        for k in range(1, len(o) - 1):
+            dtp, dt = t[k] - t[k - 1], t[k + 1] - t[k]
+            if min(b[k - 1], b[k], b[k + 1]) <= 0 or dtp < 7 or dt < 7:
+                continue
+            prev.append(np.log(b[k] / b[k - 1]) / dtp)
+            nxt.append(np.log(b[k + 1] / b[k]) / dt)
+    if len(prev) < 10:
+        return {"r": None, "n_pairs": len(prev)}
+    return {"r": float(np.corrcoef(prev, nxt)[0, 1]), "n_pairs": len(prev)}
+
+
+def build_model_card(treatment_effects: dict, risk: dict, forecast: dict, extra: dict | None = None) -> dict:
     """Numbers shown on the model card, taken from saved measurement files (never typed by hand)."""
     ci = treatment_effects.get("ci95", {})
     kill = {}
@@ -51,7 +69,10 @@ def build_model_card(treatment_effects: dict, risk: dict, forecast: dict) -> dic
           "pooled": risk.get("pooled"), "within_dataset": risk.get("within_dataset"),
           "leave_one_dataset_out": risk.get("leave_one_dataset_out"),
           "idh_wild_type_alone_auc": risk.get("idh_wild_type_alone_auc")}
-    return {"treatment_fit": tf, "risk": rk, "forecast": forecast}
+    rad_exposed = treatment_effects.get("radiation_exposed_intervals")
+    if rad_exposed is not None:
+        tf["radiation_k_per_gy"]["exposed_intervals"] = rad_exposed
+    return {"treatment_fit": tf, "risk": rk, "forecast": forecast, **(extra or {})}
 
 
 def legacy_forecast_metrics(fm: dict) -> dict:
@@ -112,6 +133,14 @@ def export(dataset: str, processed: str, whatif_json: str, out: str, n_patients:
            risk_json: str | None = None):
     backend = backend or ("torch" if device != "cpu" else "numpy")
     cases_doc = json.loads(Path(whatif_json).read_text())
+    all_cases = cases_doc["cases"]
+    full_stats = {
+        "growth_rate_autocorrelation": growth_rate_autocorrelation(all_cases),
+        "calibration": {"n_patients": len(all_cases),
+                        "n_shrinking": sum(c["status"] == "shrinking" for c in all_cases),
+                        "n_ok": sum(c["status"] == "ok" for c in all_cases),
+                        "n_no_convergence": sum(c["status"] == "no_convergence" for c in all_cases)},
+    }
     horizon = horizon or cases_doc["horizon_days"]
     tp = pd.read_parquet(Path(processed) / dataset / "timepoints.parquet")
     sched = json.loads((Path(processed) / dataset / "treatments.json").read_text())
@@ -157,7 +186,7 @@ def export(dataset: str, processed: str, whatif_json: str, out: str, n_patients:
     if treatment_effects_json and risk_json:
         cases_doc["model_card"] = build_model_card(json.loads(Path(treatment_effects_json).read_text()),
                                                    json.loads(Path(risk_json).read_text()),
-                                                   cases_doc["forecast_metrics"])
+                                                   cases_doc["forecast_metrics"], full_stats)
     cases_doc["frames"] = {"display_grid": DISPLAY, "n_frames": N_FRAMES, "note":
                            "density seed x 255; illustrative, MRI does not measure cell density"}
     outdir.mkdir(parents=True, exist_ok=True)

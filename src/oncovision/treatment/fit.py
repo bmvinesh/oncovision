@@ -178,7 +178,8 @@ def run(tp: pd.DataFrame, schedules: dict, out_json: str, measure: str = "core_m
         "excluded": iv.qc.value_counts().to_dict(),
         "cohort_mean_growth_per_day": res.r_mean,
         "kill_per_day": res.kill, "k_per_gy": res.k_per_gy,
-        "ci95": ci, "exposed_intervals": res.exposed_intervals, "cross_validation": cv,
+        "ci95": ci, "exposed_intervals": res.exposed_intervals,
+        "radiation_exposed_intervals": int((iv[iv.qc == "ok"].rt_gy > 0).sum()), "cross_validation": cv,
         "caveat": "Association from observational post-operative scans (confounding by indication, "
                   "surgery and steroids). Not a causal drug-efficacy estimate.",
     }
