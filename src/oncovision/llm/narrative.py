@@ -3,11 +3,19 @@
     python -m oncovision.llm.narrative --cases whatif_cases.json --out whatif_cases_narrated.json \\
         --model nemotron3:33b
 
-Two things are explained: each patient's what-if case, and the model card (what was and was not
-learned).  The model is told to use only the facts it is given.  Every number in its reply must
-match a number in the facts (allowing rounding); otherwise, or when Ollama is unreachable or slow,
-a deterministic template built from the same facts is returned and marked ``source: "template"``.
-Nothing leaves the machine; no key is needed.
+Design (after a first version that only checked numbers let the model write "6.6 percentage points
+higher" for a result that is 6.6% worse):
+
+* the facts are pre-verbalised as short **claims**, each already stating direction and unit, so the model
+  rephrases rather than interprets signed numbers;
+* a reply is accepted only if (1) every number in it matches a number in the claims (allowing rounding), and
+  (2) every sentence that quotes a claim's key number also carries that claim's direction words and none of
+  the opposite ones;
+* otherwise, or when Ollama is unreachable or slow, the deterministic template (the claims themselves,
+  joined) is returned and marked ``source: "template"``.
+
+The check cannot prove the wording is right; the viewer labels LLM text as AI-written.  Nothing leaves the
+machine; no key is needed.
 """
 from __future__ import annotations
 
@@ -24,43 +32,143 @@ OLLAMA_URL = "http://127.0.0.1:11434"
 DEFAULT_MODEL = "nemotron3:33b"
 
 SYSTEM = (
-    "You explain research simulation results to a non-specialist. Use ONLY the facts in the JSON you are given. "
-    "Do not introduce any number that is not in the facts. Do not give medical advice, treatment recommendations "
-    "or prognosis for a person. Say plainly what is measured, what is a model assumption, and what the evidence "
-    "does not show. Write 4 to 6 short sentences, no headings, no lists."
+    "You rewrite a list of verified claims about a research simulation as a short plain-language explanation "
+    "for a non-specialist. Every claim is true as written. Use only the claims. Do not combine numbers from "
+    "different claims, do not change a number, unit or direction (higher/lower, better/worse), do not add "
+    "numbers, and do not give medical advice or say what will happen to a person. Keep every caveat. "
+    "Write 4 to 6 short sentences, no headings, no lists."
 )
 
 _NUM = re.compile(r"(?<![\w.])-?\d+(?:[.,]\d+)?")
 
+UP = ["higher", "increase", "grow", "rise", "rises", "larger", "bigger", "up "]
+DOWN = ["lower", "decrease", "shrink", "fall", "drop", "smaller", "reduc"]
+WORSE = ["worse", "less accurate", "less well", "poorer", "lower accuracy", "did not beat", "not better", "higher error",
+         "larger error", "more error", "greater error", "above"]
+BETTER = ["better", "more accurate", "improv", "beat ", "outperform", "lower error", "smaller error"]
 
-def _flatten_numbers(obj, out: list[float]):
-    if isinstance(obj, bool) or obj is None:
-        return
-    if isinstance(obj, (int, float)):
-        out.append(float(obj))
-    elif isinstance(obj, str):
-        for m in _NUM.finditer(obj):
-            try:
-                out.append(float(m.group(0).replace(",", "")))
-            except ValueError:
-                pass
-    elif isinstance(obj, dict):
-        for v in obj.values():
-            _flatten_numbers(v, out)
-    elif isinstance(obj, (list, tuple)):
-        for v in obj:
-            _flatten_numbers(v, out)
+
+def _claim(text: str, number: str | None = None, must: list[str] | None = None, must_not: list[str] | None = None) -> dict:
+    return {"text": text, "number": number, "must": must or [], "must_not": must_not or []}
+
+
+# ------------------------------------------------------------------ claims
+SCENARIO_LABEL = {
+    "no_further_treatment": "with no further treatment", "as_recorded": "with the treatment recorded in the chart",
+    "tmz_6_cycles": "with six cycles of temozolomide", "tmz_plus_ttfields": "with temozolomide plus tumour treating fields",
+    "bevacizumab": "with bevacizumab",
+}
+
+
+def case_claims(case: dict, effects: dict | None = None, forecast: dict | None = None) -> list[dict]:
+    obs = case["observed"]
+    first, last = obs[0], obs[-1]
+    cl = []
+    clin = {k: v for k, v in (case.get("clinical") or {}).items() if v is not None}
+    who = ", ".join(f"{k.replace('_', ' ')} {v}" for k, v in clin.items() if k in ("age_years", "sex", "who_grade", "idh"))
+    cl.append(_claim(f"Patient {case['uid'].split(':')[1]}" + (f" ({who})" if who else "")
+                     + f" had {len(obs)} scans over {round(last['day'])} days."))
+    b0, b1 = round(first["seed_burden_mm3"]), round(last["seed_burden_mm3"])
+    cl.append(_claim(f"The modelled tumour burden (a cell-equivalent volume built from the segmentation, not a "
+                     f"measured cell count) was {b0} mm3 at the first scan and {b1} mm3 at the last.", str(b1)))
+    if case["status"] == "ok":
+        cl.append(_claim(f"The simulation's growth rate was fitted to this patient's own scans at {case['rho']:.3f} per day."))
+    elif case["status"] == "shrinking":
+        cl.append(_claim("The tumour shrank more between scans than the model's growth term can explain, so a loss rate "
+                         "was fitted instead of a growth rate."))
+    else:
+        cl.append(_claim("The model could not be fitted to this patient's scans, so its forecast is unreliable."))
+    t_last = last["day"]
+    for name, s in case["scenarios"].items():
+        if name not in SCENARIO_LABEL:
+            continue
+        pct = 100 * (s["burden_mm3"][-1] / last["seed_burden_mm3"] - 1)
+        h = round(s["day"][-1] - t_last)
+        up = pct >= 0
+        cl.append(_claim(
+            f"{SCENARIO_LABEL[name].capitalize()}, the modelled burden after {h} days is {abs(pct):.1f}% "
+            f"{'higher' if up else 'lower'} than at the last scan.", f"{abs(pct):.1f}",
+            must=UP if up else DOWN, must_not=DOWN if up else UP))
+    if effects:
+        parts = [f"{a} {round(100 * v['suppress'])}%" for a, v in effects.items()
+                 if isinstance(v, dict) and v.get("suppress")]
+        cl.append(_claim("The treatment effects in these scenarios are growth suppression while the drug is active, "
+                         "taken from published trials and not measured in this patient group: " + ", ".join(parts) + "."))
+    if forecast and "with_treatment" in forecast:
+        a, b = forecast["with_treatment"]["mae_log_ratio"], forecast["cohort_median_rate"]["mae_log_ratio"]
+        worse = a > b
+        cl.append(_claim(
+            f"Across {forecast.get('n_forecasts')} forecasts in {forecast.get('n_patients')} patients, the model's average "
+            f"error was {a:.2f} against {b:.2f} for simply assuming the cohort's median growth rate, so the model was "
+            f"{'less' if worse else 'more'} accurate.", f"{a:.2f}",
+            must=WORSE if worse else BETTER, must_not=BETTER if worse else WORSE))
+    cl.append(_claim("This is an illustrative research simulation, not a prediction for this patient and not medical advice."))
+    return cl
+
+
+def results_claims(mc: dict) -> list[dict]:
+    tf, rk, fc = mc.get("treatment_fit", {}), mc.get("risk", {}), mc.get("forecast", {})
+    cl = []
+    kill = tf.get("kill_per_day") or {}
+    zero = [a for a, v in kill.items() if v.get("ci95") and v["ci95"][0] <= 0 <= v["ci95"][1]]
+    if tf.get("n_intervals"):
+        cl.append(_claim(
+            f"From {tf['n_intervals']} scan intervals in {tf['n_patients']} patients, the fitted drug effects "
+            f"({', '.join(sorted(kill))}, and radiation) were not distinguishable from zero"
+            + ("" if len(zero) == len(kill) else " except where noted") + "."))
+    pct = tf.get("cv_vs_no_treatment_baseline_pct")
+    if pct is not None:
+        worse = pct < 0
+        cl.append(_claim(
+            f"Predicting volume change with treatment information was {abs(pct):.1f}% {'worse' if worse else 'better'} "
+            f"than ignoring treatment.", f"{abs(pct):.1f}",
+            must=WORSE if worse else BETTER, must_not=BETTER if worse else WORSE))
+    cl.append(_claim("Treatment is usually started because a tumour is growing, which hides any benefit in this kind of "
+                     "retrospective data; the what-if therefore uses effect sizes from clinical trials."))
+    ac = mc.get("growth_rate_autocorrelation") or {}
+    if ac.get("r") is not None:
+        cl.append(_claim(f"A patient's growth rate in one interval is essentially uncorrelated with the next "
+                         f"(correlation {ac['r']:.2f} over {ac['n_pairs']} pairs), so extrapolating a patient's own history "
+                         f"does not work here."))
+    if fc.get("with_treatment") and fc.get("cohort_median_rate"):
+        a, b = fc["with_treatment"]["mae_log_ratio"], fc["cohort_median_rate"]["mae_log_ratio"]
+        worse = a > b
+        cl.append(_claim(
+            f"The simulation's forecasts had an average error of {a:.2f}, against {b:.2f} for assuming the cohort median "
+            f"growth rate, so they were {'less' if worse else 'more'} accurate.", f"{a:.2f}",
+            must=WORSE if worse else BETTER, must_not=BETTER if worse else WORSE))
+    p = (rk.get("pooled") or {}).get("auc")
+    lo = rk.get("leave_one_dataset_out") or {}
+    if p:
+        cl.append(_claim(
+            f"The mortality risk model reached an AUC of {p:.2f} within the pooled data, but on a cohort it had not seen "
+            f"the AUC was {', '.join(f'{v['auc']:.2f}' for v in lo.values())} (0.5 is chance), so it transfers poorly."))
+    cl.append(_claim("All of this is a research demonstration, not a clinical tool."))
+    return cl
+
+
+def template(claims: list[dict]) -> str:
+    return " ".join(c["text"] for c in claims)
+
+
+# ------------------------------------------------------------------ checking
+def _numbers_in(text: str) -> list[float]:
+    out = []
+    for m in _NUM.finditer(text):
+        try:
+            out.append(float(m.group(0).replace(",", "")))
+        except ValueError:
+            pass
+    return out
 
 
 def _decimals(s: str) -> int:
     return len(s.split(".")[1]) if "." in s else 0
 
 
-def ungrounded_numbers(text: str, facts: dict) -> list[str]:
-    """Numbers in ``text`` that do not correspond to any number in ``facts`` (allowing rounding,
-    percentages and per-mille style rescalings by 100)."""
-    pool: list[float] = []
-    _flatten_numbers(facts, pool)
+def ungrounded_numbers(text: str, claims: list[dict]) -> list[str]:
+    """Numbers in ``text`` that match no number in the claims (allowing rounding)."""
+    pool = [x for c in claims for x in _numbers_in(c["text"])]
     bad = []
     for m in _NUM.finditer(text):
         tok = m.group(0).replace(",", "")
@@ -68,23 +176,41 @@ def ungrounded_numbers(text: str, facts: dict) -> list[str]:
         if abs(x) <= 12 and float(x).is_integer():       # counts like "three scans", "2 of 3"
             continue
         d = _decimals(tok)
-        ok = False
-        for p in pool:
-            for q in (p, p * 100.0, p / 100.0, -p, abs(p)):
-                tol = max(0.5 * 10 ** (-d), 1e-9 + 0.01 * abs(q))
-                if abs(round(q, d) - x) <= 0.5 * 10 ** (-d) + 1e-12 or abs(q - x) <= tol:
-                    ok = True
-                    break
-            if ok:
-                break
+        ok = any(abs(round(q, d) - x) <= 0.5 * 10 ** (-d) + 1e-12 or abs(q - x) <= 0.01 * abs(q) + 1e-9
+                 for p in pool for q in (p, abs(p)))
         if not ok:
             bad.append(tok)
     return bad
 
 
+_CLAUSE = re.compile(r"(?<=[a-zA-Z%\)\"])[.!?]\s+|\n+|;|,?\s+(?:while|whereas|but|versus|compared with)\s+|,\s+and\s+(?:with|without)\s+")
+
+
+def _sentences(text: str) -> list[str]:
+    """Clauses: split on sentence ends, semicolons and contrast words so that two scenarios quoted in one
+    sentence are checked separately."""
+    return [s for s in _CLAUSE.split(text) if s and s.strip()]
+
+
+def polarity_violations(text: str, claims: list[dict]) -> list[str]:
+    """For each claim with a direction, any sentence quoting its number must carry the direction words
+    and none of the opposite ones."""
+    bad = []
+    for c in claims:
+        if not c.get("number") or not (c["must"] or c["must_not"]):
+            continue
+        for s in _sentences(text):
+            if re.search(rf"(?<![\d.]){re.escape(c['number'])}(?!\d)", s):
+                low = s.lower() + " "
+                if c["must"] and not any(w in low for w in c["must"]):
+                    bad.append(f"{c['number']}: missing direction in '{s.strip()[:80]}'")
+                elif any(w in low for w in c["must_not"]):
+                    bad.append(f"{c['number']}: opposite direction in '{s.strip()[:80]}'")
+    return bad
+
+
 def _strip_think(s: str) -> str:
-    s = re.sub(r"<think>.*?</think>", "", s, flags=re.S | re.I)
-    return s.strip()
+    return re.sub(r"<think>.*?</think>", "", s, flags=re.S | re.I).strip()
 
 
 def call_ollama(prompt: str, system: str = SYSTEM, model: str = DEFAULT_MODEL, timeout: float = 120.0,
@@ -108,111 +234,33 @@ def call_ollama(prompt: str, system: str = SYSTEM, model: str = DEFAULT_MODEL, t
     return _strip_think(resp.get("message", {}).get("content", ""))
 
 
-# ------------------------------------------------------------------ facts
-def case_facts(case: dict, effects: dict | None = None, forecast: dict | None = None) -> dict:
-    obs = case["observed"]
-    first, last = obs[0], obs[-1]
-    scen = {}
-    t_last = last["day"]
-    for name, s in case["scenarios"].items():
-        end = s["burden_mm3"][-1]
-        scen[name] = {"horizon_days": round(s["day"][-1] - t_last),
-                      "change_vs_last_scan_pct": round(100 * (end / last["seed_burden_mm3"] - 1), 1)}
-    f = {
-        "patient": case["uid"].split(":")[1],
-        "clinical": {k: v for k, v in (case.get("clinical") or {}).items() if v is not None},
-        "scans": len(obs), "span_days": round(last["day"]),
-        "burden_first_scan_mm3": round(first["seed_burden_mm3"]), "burden_last_scan_mm3": round(last["seed_burden_mm3"]),
-        "calibration_status": case["status"],
-        "growth_rate_per_day": round(case["rho"], 4),
-        "scenarios_change_in_burden_after_last_scan": scen,
-        "treatment_recorded": [c["agent"] for c in case["recorded_schedule"]["drugs"]]
-        + (["radiation"] if case["recorded_schedule"]["radiation"] else []),
-        "schedule_assumptions": case.get("assumptions") or [],
-    }
-    if effects:
-        f["effect_sizes_are_from_trials_not_this_cohort"] = {
-            a: f"growth suppression {round(100 * v['suppress'])}% while active"
-            for a, v in effects.items() if isinstance(v, dict) and v.get("suppress")}
-    if forecast:
-        f["how_well_forecasts_work"] = {
-            "mean_error_model_with_treatment": round(forecast["with_treatment"]["mae_log_ratio"], 2),
-            "mean_error_cohort_median_rate": round(forecast["cohort_median_rate"]["mae_log_ratio"], 2),
-            "number_of_forecasts": forecast.get("n_forecasts")}
-    return f
-
-
-def results_facts(model_card: dict) -> dict:
-    tf, rk, fc = model_card.get("treatment_fit", {}), model_card.get("risk", {}), model_card.get("forecast", {})
-    kill = {a: {"fitted_per_day": round(v["value"], 4), "ci95": [round(x, 4) for x in (v.get("ci95") or [])]}
-            for a, v in (tf.get("kill_per_day") or {}).items()}
-    return {
-        "treatment_effect_fit": {"intervals": tf.get("n_intervals"), "patients": tf.get("n_patients"),
-                                 "fitted_kill_rates": kill, "radiation_ci95_per_gy": tf.get("radiation_k_per_gy", {}).get("ci95"),
-                                 "accuracy_vs_ignoring_treatment_pct": tf.get("cv_vs_no_treatment_baseline_pct"),
-                                 "caveat": tf.get("caveat")},
-        "forecast_check": {k: (round(v["mae_log_ratio"], 2) if isinstance(v, dict) and "mae_log_ratio" in v else v)
-                           for k, v in fc.items() if k != "note"},
-        "growth_rate_autocorrelation": model_card.get("growth_rate_autocorrelation"),
-        "risk_model_auc": {"pooled": (rk.get("pooled") or {}).get("auc"),
-                           "unseen_cohort": {k: round(v["auc"], 2) for k, v in (rk.get("leave_one_dataset_out") or {}).items()}},
-    }
-
-
-# ------------------------------------------------------------------ templates (deterministic fallback)
-def case_template(f: dict) -> str:
-    sc = f["scenarios_change_in_burden_after_last_scan"]
-    parts = [f"Patient {f['patient']} has {f['scans']} scans over {f['span_days']} days."]
-    if "no_further_treatment" in sc and "tmz_6_cycles" in sc:
-        parts.append(
-            f"In the simulation, with no further treatment the modelled tumour burden changes by "
-            f"{sc['no_further_treatment']['change_vs_last_scan_pct']}% over the next "
-            f"{sc['no_further_treatment']['horizon_days']} days, and with six cycles of temozolomide by "
-            f"{sc['tmz_6_cycles']['change_vs_last_scan_pct']}%.")
-    parts.append("The treatment effects are taken from published trials, not learned from this patient group, "
-                 "so this shows how a tumour could respond, not what it will do.")
-    if f.get("how_well_forecasts_work"):
-        h = f["how_well_forecasts_work"]
-        parts.append(f"Across the cohort, the model's forecasts were less accurate (error {h['mean_error_model_with_treatment']}) "
-                     f"than simply assuming the average growth rate (error {h['mean_error_cohort_median_rate']}).")
-    return " ".join(parts)
-
-
-def results_template(f: dict) -> str:
-    t = f["treatment_effect_fit"]
-    return (f"From {t['intervals']} scan intervals in {t['patients']} patients, the fitted drug effects were not "
-            f"distinguishable from zero, and a model using treatment predicted volume change "
-            f"{abs(t['accuracy_vs_ignoring_treatment_pct'])}% {'worse' if (t['accuracy_vs_ignoring_treatment_pct'] or 0) < 0 else 'better'} "
-            f"than one that ignored it. Treatment is usually started because a tumour is growing, which hides any benefit "
-            f"in retrospective data. The simulation therefore uses effect sizes from clinical trials and is illustrative.")
-
-
-# ------------------------------------------------------------------ main entry points
-def explain(facts: dict, kind: str, model: str = DEFAULT_MODEL, cache_dir: str | None = None,
+def explain(claims: list[dict], kind: str, model: str = DEFAULT_MODEL, cache_dir: str | None = None,
             timeout: float = 120.0, caller=call_ollama) -> dict:
-    key = hashlib.sha256(json.dumps([kind, facts, model], sort_keys=True).encode()).hexdigest()[:20]
+    key = hashlib.sha256(json.dumps([kind, claims, model], sort_keys=True).encode()).hexdigest()[:20]
     cp = Path(cache_dir) / f"{key}.json" if cache_dir else None
     if cp and cp.exists():
         return json.loads(cp.read_text())
-    template = case_template(facts) if kind == "case" else results_template(facts)
     t0 = time.time()
-    prompt = ("Explain these simulation results.\nFACTS (JSON):\n" + json.dumps(facts, indent=1)
-              + "\n\nWrite the explanation now.")
-    source, text, note = "template", template, None
+    prompt = "CLAIMS (each is true; rewrite them as a short explanation):\n" + "\n".join(f"- {c['text']}" for c in claims)
+    source, text, note = "template", template(claims), None
     try:
         out = caller(prompt, model=model, timeout=timeout)
         if not out.strip():
             note = "empty reply"
         else:
-            bad = ungrounded_numbers(out, facts)
+            bad = ungrounded_numbers(out, claims)
+            pol = polarity_violations(out, claims)
             if bad:
-                note = f"numbers not in facts: {bad[:5]}"
+                note = f"numbers not in claims: {bad[:5]}"
+            elif pol:
+                note = f"direction check failed: {pol[:2]}"
             else:
                 source, text = "llm", out.strip()
     except Exception as e:  # network, timeout, model missing
         note = f"{type(e).__name__}: {e}"
     res = {"text": text, "source": source, "model": model if source == "llm" else None,
-           "elapsed_ms": int(1000 * (time.time() - t0)), "fallback_reason": note if source == "template" else None}
+           "elapsed_ms": int(1000 * (time.time() - t0)), "fallback_reason": note if source == "template" else None,
+           "claims": [c["text"] for c in claims]}
     if cp:
         cp.parent.mkdir(parents=True, exist_ok=True)
         cp.write_text(json.dumps(res))
@@ -232,13 +280,15 @@ def main(argv=None):
     fm = doc.get("forecast_metrics")
     n_llm = 0
     for c in doc["cases"]:
-        c["narrative"] = explain(case_facts(c, eff, fm), "case", a.model, a.cache, a.timeout)
+        c["narrative"] = explain(case_claims(c, eff, fm), "case", a.model, a.cache, a.timeout)
         n_llm += c["narrative"]["source"] == "llm"
-        print(c["uid"], c["narrative"]["source"], c["narrative"]["elapsed_ms"], "ms", flush=True)
+        print(c["uid"], c["narrative"]["source"], c["narrative"]["elapsed_ms"], "ms",
+              c["narrative"]["fallback_reason"] or "", flush=True)
     if doc.get("model_card"):
-        doc["model_card"]["explainer"] = explain(results_facts(doc["model_card"]), "results", a.model, a.cache, a.timeout)
-        print("results explainer:", doc["model_card"]["explainer"]["source"],
-              doc["model_card"]["explainer"]["elapsed_ms"], "ms")
+        mc = dict(doc["model_card"])
+        doc["model_card"]["explainer"] = explain(results_claims(mc), "results", a.model, a.cache, a.timeout)
+        e = doc["model_card"]["explainer"]
+        print("results explainer:", e["source"], e["elapsed_ms"], "ms", e["fallback_reason"] or "")
     Path(a.out).write_text(json.dumps(doc))
     print(f"{n_llm}/{len(doc['cases'])} case narratives from the model")
 
