@@ -38,6 +38,8 @@ Per case the viewer uses: `uid`, `status`, `rho`, `delta`, `D`, `grid{cells,spac
 | Plain-language explanation (`narrative` per case, `model_card.explainer`) | Baked into `whatif_cases.json` by `oncovision.llm.debate`; shown with an **AI-written** tag as a sentence ledger: each sentence with its origin (as drafted, revised, verified statement used), the statements it cites, and any Skeptic objection next to the Judge's ruling. The counts above the ledger are counted from `narrative.trace`. When the page is served by `oncovision.api.app`, a **Re-run live** button calls `POST /api/narrative`; on static hosting it is hidden. |
 | "On this device" strip in the top bar | Only values from `GET /api/health`: `device`, `model`, `llm.loaded`, `cases`, `explanations`. Hidden on static hosting. |
 | Guided tour captions | Fixed copy in `js/tour.js`; scenario names come from the data. |
+| Viewport readout, scale bar, cut-plane position | Segmentation volumes and burden from the data file; the scale bar is computed from the box size and the camera, and in 3D is exact only at the depth the camera orbits around. |
+| Model parameter panel, scenario effect panel, CSV export | Read from the selected case and `effects`. Read-only: nothing is re-simulated in the browser. Missing values are empty in the CSV, never 0. |
 | Live `/api/simulate` | Not built. |
 | Contract section 3 (`manifest.json`, `case.json`, `frames.u8`) | Not consumed. The viewer follows the `whatif_cases.json` format the backend emits. |
 
@@ -76,6 +78,7 @@ js/explain.js     plain-language explanation as a sentence ledger, agents, tally
 js/device.js      "on this device" strip from /api/health
 js/tour.js        guided tour (four steps, ?tour=1)
 js/futures.js     slots for later features, hidden without data
+                  (main.js also draws the viewport readout, scale bar, parameter panel, effect panel and CSV export)
 vendor/           three.js, OrbitControls, fonts
 THIRD_PARTY.md    licences and references
 ```

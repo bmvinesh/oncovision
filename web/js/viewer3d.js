@@ -119,7 +119,7 @@ export function webglSupported() {
   }
 }
 
-const RAMP = ["#6650c8", "#a862cc", "#f0759a", "#fff3f5"];
+const RAMP = ["#24459c", "#2f86d6", "#5fd4d6", "#f2feff"];
 
 export class Viewer {
   /** @param {HTMLElement} host element that receives the canvas; @param {HTMLElement} eventEl element that gets pointer/key events */
@@ -152,7 +152,7 @@ export class Viewer {
     const box = new THREE.BoxGeometry(1, 1, 1);
     const edges = new THREE.LineSegments(
       new THREE.EdgesGeometry(box),
-      new THREE.LineBasicMaterial({ color: 0xb79ad0, transparent: true, opacity: 0.3, depthTest: false }),
+      new THREE.LineBasicMaterial({ color: 0x8fa6c4, transparent: true, opacity: 0.3, depthTest: false }),
     );
     edges.renderOrder = 0;
     this.scene.add(edges);

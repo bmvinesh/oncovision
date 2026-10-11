@@ -180,7 +180,7 @@ function frameFor(p, key, t) {
 }
 
 // ---------- rendering ----------
-const RAMP = [[0x66, 0x50, 0xc8], [0xa8, 0x62, 0xcc], [0xf0, 0x75, 0x9a], [0xff, 0xf3, 0xf5]];
+const RAMP = [[0x24, 0x45, 0x9c], [0x2f, 0x86, 0xd6], [0x5f, 0xd4, 0xd6], [0xf2, 0xfe, 0xff]];
 function rampRGB(d) {
   d = Math.min(1, Math.max(0, d));
   const sm = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
@@ -212,7 +212,7 @@ function drawSlice(fr, invMax) {
       else if (axis === "y") d = v(r, i0, c) * (1 - w) + v(r, i1, c) * w;
       else d = v(r, c, i0) * (1 - w) + v(r, c, i1) * w;
       const dn = d * invMax;
-      const col = rampRGB(dn).map((c, k) => [11, 14, 20][k] + (c - [11, 14, 20][k]) * Math.min(1, dn / 0.06));
+      const col = rampRGB(dn).map((c, k) => [11, 18, 32][k] + (c - [11, 18, 32][k]) * Math.min(1, dn / 0.06));
       const o = (r * N + c) * 4;
       img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 255;
     }
@@ -244,6 +244,7 @@ function render3D() {
     viewer.setLayers(frames.map((f) => ({ aId: f.a.id, aData: f.a.data, bId: (f.b || f.a).id, bData: (f.b || f.a).data, mix: f.mix })));
   }
   if (opts.clip.on || !glOk) drawSlice(frames[0], invMax);
+  if (!glOk) updateScaleBar(null);
   // legend
   const maxD = opts.scale === "patient" && frameSet.maxRaw > 0 ? frameSet.maxRaw / 255 : 1;
   $("lg-1").textContent = (maxD / 2).toFixed(2);
@@ -278,12 +279,91 @@ function renderReadouts() {
     volDt.textContent = "Volume at density 0.5 or more";
     $("ro-vol").textContent = !isNum(v.volume) ? NA : v.volume <= 0 ? "below 0.5 everywhere" : fmtVol(v.volume);
   }
+  renderHud(v);
   updateScenTable(p, s.t);
   const rng = $("t-range");
   if (Number(rng.value) !== Math.round(s.t)) rng.value = String(Math.round(s.t));
   rng.setAttribute("aria-valuetext", v.phase === "observed" ? `day ${fmtDay(s.t)}, measured scan ${v.scanIndex + 1}` : `day ${fmtDay(s.t)}, forecast ${fmtDay(v.daysSinceLast)} days after last scan`);
   // keep slider fill hint using CSS var
   rng.style.setProperty("--p", `${(s.t / p.tEnd) * 100}%`);
+}
+
+/** Floating readout in the viewport: what the volume is made of at this time, from the data file only. */
+function renderHud(v) {
+  const row = (dot, k, val) => `<div><i class="${dot}"></i><dt>${k}</dt><dd>${esc(val)}</dd></div>`;
+  const obs = v.phase === "observed";
+  $("hud").hidden = false;
+  $("hud").innerHTML = obs
+    ? `<h4><span>Segmentation, scan ${v.scanIndex + 1} of ${v.scanCount}</span><span>measured</span></h4><dl>`
+      + row("d-a", "Segmented tumour", fmtVol(v.scan.tumor)) + row("d-b", "Tumour core", fmtVol(v.scan.core))
+      + row("d-c", "Resection cavity", fmtVol(v.scan.cavity)) + row("d-d", "Model seed burden", fmtVol(v.burden)) + `</dl>`
+    : `<h4><span>Forecast, +${fmtDay(v.daysSinceLast)} d</span><span>illustrative</span></h4><dl>`
+      + row("d-d", "Modelled burden", fmtVol(v.burden))
+      + row("d-b", "Volume, density ≥ 0.5", !isNum(v.volume) ? NA : v.volume <= 0 ? "below 0.5" : fmtVol(v.volume))
+      + row("d-c", "Since last scan", fmtPct(v.vsLastPct, 0)) + `</dl>`;
+}
+
+/** Calibrated scale bar. In 3D it is exact at the depth the camera orbits around; in 2D it is exact. */
+function updateScaleBar(camera) {
+  const p = store.get().patient, el = $("viewbar");
+  const bx = p && p.boxMm;
+  if (!bx || !bx.every((v) => Math.abs(v - bx[0]) < 0.5)) { el.hidden = true; return; }
+  let pxPerMm;
+  if (glOk && viewer && camera) {
+    const dist = camera.position.distanceTo(viewer.controls.target);
+    pxPerMm = $("stage").clientHeight / (2 * dist * Math.tan((camera.fov * Math.PI) / 360)) / bx[0];
+  } else {
+    pxPerMm = $("slice").clientWidth / bx[0];
+  }
+  if (!(pxPerMm > 0)) { el.hidden = true; return; }
+  const mm = [1, 2, 5, 10, 20, 50, 100, 200].filter((m) => m * pxPerMm <= 140).pop() || 1;
+  el.hidden = false;
+  $("vb-bar").style.width = `${Math.round(mm * pxPerMm)}px`;
+  $("vb-label").innerHTML = `<b>${mm} mm</b>${glOk ? " at the focus depth" : ""}`;
+  const c = opts.clip;
+  $("vb-slice").textContent = c.on ? `Cut plane ${c.axis.toUpperCase()} at ${Math.round(c.pos * bx[0])} mm of ${Math.round(bx[0])} mm` : "";
+}
+
+function renderParams(p) {
+  const row = (k, val, unit, src) => `<div><dt>${k}</dt><dd>${esc(val)}${unit && val !== NA ? `<small>${unit}</small>` : ""}</dd>${src ? `<span class="src">${src}</span>` : ""}</div>`;
+  const shr = p.status === "shrinking";
+  let h = row("Proliferation rate ρ", fmtNum(p.rho, 4), "per day", shr ? "held fixed for this patient" : "calibrated on this patient's first interval")
+    + row("Diffusion D", isNum(p.D) ? String(p.D) : NA, "mm²/day", "not fitted")
+    + row("Loss rate δ", fmtNum(p.delta, 4), "per day", shr ? "fitted, shrinking tumour" : "")
+    + row("Simulation grid", isNum(p.gridCells) && isNum(p.spacingMm) ? `${p.gridCells}³ at ${p.spacingMm}` : NA, "mm", "")
+    + row("Forecast horizon", fmtDay(p.tEnd - p.lastScan), "days", "");
+  const vals = (cohort.meta.effects && cohort.meta.effects.values) || {};
+  for (const [a, e] of Object.entries(vals)) {
+    if (e && isNum(e.suppress) && e.suppress > 0) h += row(`${esc(AGENT_LABEL[a] || a)}: growth suppression`, (e.suppress * 100).toFixed(0), "%", "literature prior, illustrative");
+  }
+  $("param-list").innerHTML = h;
+  $("scen-select").innerHTML = p.scenarioKeys.map((k) => `<option value="${esc(k)}">${esc(scenInfo(k).label)}</option>`).join("");
+}
+
+function renderEffect(p) {
+  const el = $("effect-panel");
+  const rows = p.scenarioKeys.map((k) => ({ k, v: valuesAt(p, k, p.tEnd).vsNonePct })).filter((r) => r.k !== "no_further_treatment");
+  if (!p.scenarios.no_further_treatment || !rows.some((r) => isNum(r.v))) { el.hidden = true; return; }
+  const max = Math.max(...rows.map((r) => (isNum(r.v) ? Math.abs(r.v) : 0))) || 1;
+  el.hidden = false;
+  el.innerHTML = `<h3 class="panel-h">Scenario effect at the end of the forecast <span class="tag tag-illustrative">illustrative</span></h3>`
+    + `<ol class="effect">${rows.map((r) => `<li><span>${esc(scenInfo(r.k).label)}</span><span class="track"><span style="width:${isNum(r.v) ? (Math.abs(r.v) / max) * 100 : 0}%"></span></span><span class="v">${fmtPct(r.v, 1)}</span></li>`).join("")}</ol>`
+    + `<p class="note">Modelled burden compared with no further treatment at day ${fmtDay(p.tEnd)}. The effect sizes are literature priors, not measured in this cohort.</p>`;
+}
+
+/** Burden curves and scans as CSV. Missing values are left empty, never written as 0. */
+function exportCsv() {
+  const p = store.get().patient;
+  if (!p) return;
+  const n = (v) => (isNum(v) ? String(v) : "");
+  const lines = ["patient,series,tag,day,burden_mm3,volume_density_ge_0.5_mm3,segmented_tumour_mm3"];
+  p.observed.forEach((o) => lines.push([p.id, "observed", "measured", n(o.day), n(o.seed), "", n(o.tumor)].join(",")));
+  p.scenarioKeys.forEach((k) => { const s = p.scenarios[k]; s.day.forEach((d, i) => lines.push([p.id, k, "illustrative", n(d), n(s.burden[i]), n(s.volume ? s.volume[i] : null), ""].join(","))); });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/csv" }));
+  a.download = `${p.id}_whatif.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 function buildScenTable(p) {
@@ -315,6 +395,10 @@ function updateScenTable(p, t) {
 function renderPatientStatic(p) {
   // header of stage
   $("lbl-patient").textContent = `${p.id}`;
+  $("case-chip").hidden = false;
+  $("case-chip").innerHTML = `Case <b>${esc(p.id)}</b>${p.dataset ? ` · ${esc(DATASET_LABEL[p.dataset] || p.dataset)}` : ""}`;
+  renderParams(p);
+  renderEffect(p);
   const tags = ['<span class="tag tag-illustrative">illustrative forecast</span>', '<span class="tag tag-measured">measured scans</span>'];
   if (cohort.kind === "fixture") tags.push('<span class="tag tag-fixture">sample data</span>');
   $("stage-tags").innerHTML = tags.join("");
@@ -399,6 +483,7 @@ function renderAll(s, changed) {
   if (full || changed.includes("scenario")) {
     $("lbl-scenario").textContent = scenInfo(s.scenario).label;
     document.querySelectorAll('#scen-table input[name="scen3d"]').forEach((r) => { r.checked = r.value === s.scenario; });
+    $("scen-select").value = s.scenario;
   }
   if (full || changed.includes("compare")) {
     $("compare").value = s.compare || "";
@@ -460,6 +545,17 @@ function bindControls() {
   $("j-last").addEventListener("click", () => { const p = store.get().patient; if (p) store.set({ playing: false, t: p.lastScan }); });
   $("j-end").addEventListener("click", () => { const p = store.get().patient; if (p) store.set({ playing: false, t: p.tEnd }); });
   $("chart-log").addEventListener("change", (e) => store.set({ log: e.target.checked }));
+  $("scen-select").addEventListener("change", (e) => {
+    const s = store.get();
+    store.set({ scenario: e.target.value, compare: s.compare === e.target.value ? "" : s.compare });
+    ensureFrames(s.patient, loadToken);
+  });
+  $("export-csv").addEventListener("click", exportCsv);
+  $("export-print").addEventListener("click", () => window.print());
+  const dlg = $("method");
+  $("method-btn").addEventListener("click", () => (dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "")));
+  $("method-close").addEventListener("click", () => dlg.close());
+  dlg.addEventListener("click", (e) => { if (e.target === dlg || e.target.closest("[data-close]")) dlg.close(); });
 
   $("scen-table").addEventListener("change", (e) => {
     const t = e.target;
@@ -566,9 +662,10 @@ function drawGizmo(camera) {
   let h = "";
   for (const [name, a] of axes) {
     const v = a.applyQuaternion(q);
-    h += `<line x1="0" y1="0" x2="${(v.x * 20).toFixed(1)}" y2="${(-v.y * 20).toFixed(1)}" stroke="#c9a9d6" stroke-width="1.6" stroke-linecap="round"/><text x="${(v.x * 27).toFixed(1)}" y="${(-v.y * 27 + 3).toFixed(1)}" text-anchor="middle">${name}</text>`;
+    h += `<line x1="0" y1="0" x2="${(v.x * 20).toFixed(1)}" y2="${(-v.y * 20).toFixed(1)}" stroke="#8fa6c4" stroke-width="1.6" stroke-linecap="round"/><text x="${(v.x * 27).toFixed(1)}" y="${(-v.y * 27 + 3).toFixed(1)}" text-anchor="middle">${name}</text>`;
   }
   $("gizmo").innerHTML = h;
+  updateScaleBar(camera);
 }
 
 // ---------- boot ----------
@@ -591,6 +688,8 @@ async function boot() {
   chip.textContent = `${cohort.kind === "fixture" ? "Sample data" : "Baked data"}: ${cohort.patients.length} patients`;
   chip.classList.toggle("is-fixture", cohort.kind === "fixture");
   renderFromData(cohort);
+  const ev = (cohort.meta.effects && cohort.meta.effects.evidence) || {};
+  if (Object.keys(ev).length) $("method-sources").innerHTML = Object.entries(ev).map(([a, t]) => `<li><strong>${esc(AGENT_LABEL[a] || a)}:</strong> ${esc(t)}</li>`).join("");
   const api = await probeApi();   // static hosting: 404 at once and the live-only controls stay hidden
   renderDevice($("device"), api);
   initUpload($("upload-slot"), api);

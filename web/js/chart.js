@@ -151,8 +151,8 @@ export class Chart {
     // playhead
     g += `<g id="ph-marks"></g>`
       + `<g class="ph" id="ph" tabindex="0" role="slider" aria-label="Time, days since first scan" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="${Math.round(tEnd)}">`
-      + `<line id="ph-line" x1="0" x2="0" y1="${y0}" y2="${y1}" stroke="var(--accent)" stroke-width="2"/>`
-      + `<path class="ph-handle" id="ph-handle" d="M-7 ${y0 - 2} h14 v9 l-7 6 l-7 -6z" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5"/>`
+      + `<line id="ph-line" x1="0" x2="0" y1="${y0}" y2="${y1}" stroke="var(--teal)" stroke-width="2"/>`
+      + `<path class="ph-handle" id="ph-handle" d="M-7 ${y0 - 2} h14 v9 l-7 6 l-7 -6z" fill="var(--teal)" stroke="var(--surface)" stroke-width="1.5"/>`
       + `<rect class="ph-hit" x="-12" y="${y0}" width="24" height="${y1 - y0}" fill="transparent"/>`
       + `</g>`;
 
@@ -238,7 +238,7 @@ export class Chart {
     } else {
       const si = p.observed.reduce((a, o, i) => (o.day <= t + 1e-6 ? i : a), 0);
       const o = p.observed[si];
-      if (isNum(o.seed) && o.seed > 0) m += `<circle cx="${this.X(o.day).toFixed(1)}" cy="${this.Y(o.seed).toFixed(1)}" r="7" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
+      if (isNum(o.seed) && o.seed > 0) m += `<circle cx="${this.X(o.day).toFixed(1)}" cy="${this.Y(o.seed).toFixed(1)}" r="7" fill="none" stroke="var(--teal)" stroke-width="2"/>`;
     }
     this.svg.querySelector("#ph-marks").innerHTML = m;
   }

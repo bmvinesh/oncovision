@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark light">
 <title>OncoVision</title>
 <meta name="description" content="Research demo: simulate how a glioma's burden changes under different treatment scenarios, seeded from real scan segmentations. Illustrative; not clinical advice.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231e1838'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23f07fa3' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23f07fa3'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230f172a'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%237ea6ff' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%235cc8c0'/%3E%3C/svg%3E">
 <link rel="preload" href="vendor/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="vendor/fonts.css">
 <link rel="stylesheet" href="css/app.css">
@@ -26,6 +26,7 @@
   <a class="brand" href="#top" aria-label="OncoVision, top of page">
     <svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true"><circle cx="16" cy="16" r="10" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="16" cy="16" r="3.6" fill="currentColor"/></svg>
     <span>OncoVision</span>
+    <small>In silico tumour growth what-if</small>
   </a>
   <nav aria-label="Sections">
     <a href="#workspace">Workspace</a>
@@ -35,6 +36,8 @@
   </nav>
   <div id="device" class="device" role="status" aria-label="Status of the local service" hidden></div>
   <div class="top-end">
+    <span id="case-chip" class="case-chip" hidden></span>
+    <button id="method-btn" class="btn" type="button" aria-haspopup="dialog">Evidence &amp; methodology</button>
     <span id="data-chip" class="chip" role="status">Loading data</span>
     <button id="theme-btn" class="btn btn-ghost" type="button" aria-label="Switch colour theme">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9c-5 1-10-4-9-9z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
@@ -85,6 +88,8 @@
           <div id="gl" class="gl"></div>
           <div id="split-labels" class="split-labels" hidden></div>
           <svg id="gizmo" class="gizmo" viewBox="-32 -32 64 64" aria-hidden="true"></svg>
+          <div id="hud" class="hud" hidden></div>
+          <div id="viewbar" class="viewbar" hidden><span id="vb-slice"></span><div class="sb" id="vb-bar"></div><span id="vb-label"></span></div>
           <div class="slice-inset" id="slice-wrap" hidden>
             <canvas id="slice" width="128" height="128" aria-label="Cross-section at the cut plane"></canvas>
             <span id="slice-label" class="mono"></span>
@@ -109,6 +114,7 @@
         <p id="stage-help" class="sr-only">Drag to orbit, scroll to zoom. The cut plane hides one side of the tumour so the inside is visible.</p>
 
         <div class="transport" id="transport" role="group" aria-label="Time">
+          <p class="panel-h">Timeline <span class="mono" style="letter-spacing:0;text-transform:none">days since first scan</span></p>
           <div class="transport-row">
             <button id="play" class="btn btn-primary" type="button" aria-label="Play">
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path id="play-ico" d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>
@@ -158,12 +164,18 @@
 
       <section class="panel chart-panel" id="chart-panel" aria-label="Tumour burden over time">
         <div class="chart-head">
-          <h3>Tumour burden over time</h3>
-          <label class="check"><input id="chart-log" type="checkbox"> Log scale</label>
+          <h3>Growth curve: tumour burden over time</h3>
+          <div class="chart-actions">
+            <label class="check"><input id="chart-log" type="checkbox"> Log scale</label>
+            <button id="export-csv" class="btn" type="button">Export CSV</button>
+            <button id="export-print" class="btn" type="button">Print report</button>
+          </div>
         </div>
         <div id="chart" class="chart"></div>
         <p id="chart-note" class="note"></p>
       </section>
+
+      <section class="panel effect-panel" id="effect-panel" aria-label="Scenario effect at the end of the forecast" hidden></section>
     </div>
 
     <div class="rail">
@@ -217,6 +229,15 @@
           </details>
         </div>
       </details>
+
+      <section class="panel params" id="params" aria-label="Scenario and model parameters">
+        <label class="sel"><span class="panel-h">Treatment scenario</span>
+          <select id="scen-select"></select>
+        </label>
+        <p class="panel-h">Model parameters</p>
+        <dl id="param-list" class="plist2"></dl>
+        <p class="note">Read-only. These are the values the stored simulation used; this build does not re-run the simulation in the browser.</p>
+      </section>
 
       <aside class="panel readout" id="readout" aria-label="Numbers at the selected time">
         <div id="ro-warn" class="callout" hidden></div>
@@ -375,6 +396,24 @@
 <footer class="foot">
   <p>OncoVision is a research demo built for a hackathon. Not a medical device and not clinical advice. Patient data are public, de-identified research cohorts used under their licences (MU-Glioma-Post and UCSD-PTGBM: CC BY 4.0). Third-party code and fonts: <a href="THIRD_PARTY.md">THIRD_PARTY.md</a>.</p>
 </footer>
+
+<dialog id="method" class="method" aria-labelledby="method-h">
+  <div class="method-head">
+    <h2 id="method-h">Evidence &amp; methodology</h2>
+    <button id="method-close" class="btn" type="button">Close</button>
+  </div>
+  <div class="method-body">
+    <p class="panel-h">What is simulated</p>
+    <p>A reaction-diffusion model: cells proliferate at rate &rho;, spread with diffusion D, and are lost at rate &delta;. It is seeded from the patient's segmentation masks (core 0.95, enhancing 0.5, oedema 0.2; resection cavity excluded) and run forward from the last scan.</p>
+    <p><strong>Tumour burden</strong> is the sum of density times voxel volume, in cell-equivalent mm&sup3;. MRI does not measure cell density, so the density colouring is a modelling choice.</p>
+    <p class="panel-h">Where the scenario effects come from <span class="tag tag-illustrative">illustrative</span></p>
+    <p>Treatment effects are not estimated from this cohort. Scenario effects are literature priors, so every scenario curve is illustrative.</p>
+    <ul id="method-sources"><li>not available</li></ul>
+    <p class="panel-h">What it is not</p>
+    <p>Not for choosing or changing treatment, giving a prognosis, or any decision about a person. It is a research demo.</p>
+    <p><a href="#evidence" data-close>What the evidence says</a> &middot; <a href="#model-card" data-close>Full model card</a> &middot; <a href="#checked" data-close>How the explanation was checked</a></p>
+  </div>
+</dialog>
 
 <div id="tour-bar" class="tour-bar" role="region" aria-label="Guided tour" hidden></div>
 
