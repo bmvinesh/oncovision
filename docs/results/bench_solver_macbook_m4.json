@@ -1,0 +1,77 @@
+{
+ "info": {
+  "machine": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "processor": "arm",
+  "torch": "2.14.1",
+  "cuda": false,
+  "gpu": null
+ },
+ "rows": [
+  {
+   "backend": "numpy-scipy (1 thread)",
+   "grid": 64,
+   "batch_requested": 64,
+   "batch_timed": 2,
+   "steps": 60,
+   "seconds_timed": 0.3,
+   "seconds_for_requested_batch": 9.592,
+   "extrapolated": true,
+   "gvoxel_steps_per_s": 0.105
+  },
+  {
+   "backend": "torch-cpu",
+   "grid": 64,
+   "batch_requested": 64,
+   "batch_timed": 8,
+   "steps": 60,
+   "seconds_timed": 0.271,
+   "seconds_for_requested_batch": 2.169,
+   "extrapolated": true,
+   "gvoxel_steps_per_s": 0.464
+  },
+  {
+   "backend": "torch-mps",
+   "grid": 64,
+   "batch_requested": 64,
+   "batch_timed": 64,
+   "steps": 60,
+   "seconds_timed": 3.272,
+   "seconds_for_requested_batch": 3.272,
+   "extrapolated": false,
+   "gvoxel_steps_per_s": 0.308
+  },
+  {
+   "backend": "numpy-scipy (1 thread)",
+   "grid": 128,
+   "batch_requested": 8,
+   "batch_timed": 1,
+   "steps": 60,
+   "seconds_timed": 1.362,
+   "seconds_for_requested_batch": 10.898,
+   "extrapolated": true,
+   "gvoxel_steps_per_s": 0.092
+  },
+  {
+   "backend": "torch-cpu",
+   "grid": 128,
+   "batch_requested": 8,
+   "batch_timed": 2,
+   "steps": 60,
+   "seconds_timed": 0.617,
+   "seconds_for_requested_batch": 2.468,
+   "extrapolated": true,
+   "gvoxel_steps_per_s": 0.408
+  },
+  {
+   "backend": "torch-mps",
+   "grid": 128,
+   "batch_requested": 8,
+   "batch_timed": 8,
+   "steps": 60,
+   "seconds_timed": 3.284,
+   "seconds_for_requested_batch": 3.284,
+   "extrapolated": false,
+   "gvoxel_steps_per_s": 0.307
+  }
+ ]
+}

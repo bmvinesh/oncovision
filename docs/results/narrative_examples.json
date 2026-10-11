@@ -1,0 +1,36 @@
+{
+ "model": "nemotron3:33b",
+ "cases": [
+  {
+   "uid": "mu_glioma_post:PatientID_0034",
+   "text": "Patient PatientID_0034 (age years 53.0, sex M, who grade 4.0, idh mut) had 6 scans over 527 days. The modelled tumour burden (a cell-equivalent volume built from the segmentation, not a measured cell count) was 1416 mm3 at the first scan and 4168 mm3 at the last. The simulation's growth rate was fitted to this patient's own scans at 0.013 per day. With no further treatment, the modelled burden after 180 days is 529.1% higher than at the last scan. With the treatment recorded in the chart, the modelled burden after 180 days is 529.1% higher than at the last scan. With six cycles of temozolomide, the modelled burden after 180 days is 452.2% higher than at the last scan. With temozolomide plus tumour treating fields, the modelled burden after 180 days is 197.2% higher than at the last scan. With bevacizumab, the modelled burden after 180 days is 216.6% higher than at the last scan. The treatment effects in these scenarios are growth suppression while the drug is active, taken from published trials and not measured in this patient group: temozolomide 28%, ttfields 40%, bevacizumab 42%. Across 226 forecasts in 104 patients, the model's average error was 0.88 against 0.55 for simply assuming the cohort's median growth rate, so the model was less accurate. This is an illustrative research simulation, not a prediction for this patient and not medical advice.",
+   "source": "template",
+   "model": null,
+   "elapsed_ms": 4948,
+   "fallback_reason": "direction check failed: [\"0.88: missing direction in 'The simulated treatment effects correspond to published growth\u2011suppression rates'\"]"
+  },
+  {
+   "uid": "mu_glioma_post:PatientID_0036",
+   "text": "This research simulation tracked Patient\u202f0036, a 55\u2011year\u2011old woman, over 406\u202fdays with six scans. The model estimated her tumour burden at about 40,556\u202fmm\u00b3 after the first scan and 45,613\u202fmm\u00b3 after the last, with a fitted growth rate of 0.012 per day. Without any treatment, the simulated burden would be roughly 247\u202f% higher than at the last scan after 180\u202fdays, and the same 247\u202f% increase is predicted when the recorded treatment is applied. Six cycles of temozolomide alone would raise the burden by about 218\u202f% after 180\u202fdays, while temozolomide combined with tumour\u2011treating fields would raise it by about 109\u202f%, and bevacizumab alone by about 118\u202f%. The model\u2019s growth\u2011suppression effects (temozolomide\u202f28\u202f%, tumour\u2011treating fields\u202f40\u202f%, bevacizumab\u202f42\u202f%) are based on published trials, not on measurements from this patient group. Across 226 forecasts in 104 patients, the model\u2019s average error was 0.88, which is higher than the 0.55 error when simply assuming the cohort\u2019s median growth rate, indicating the model was less accurate. This is an illustrative research simulation, not a prediction for this patient and not medical advice.",
+   "source": "llm",
+   "model": "nemotron3:33b",
+   "elapsed_ms": 4959,
+   "fallback_reason": null
+  },
+  {
+   "uid": "mu_glioma_post:PatientID_0074",
+   "text": "This research simulation tracked Patient\u202f0074, a 44\u2011year\u2011old man, over 653\u202fdays with six scans. The model estimated his tumour burden at 5237\u202fmm\u00b3 on the first scan and 5765\u202fmm\u00b3 on the last, and fitted a daily growth rate of 0.011. Without any treatment, the simulated burden after 180\u202fdays would be 381.1\u202f% higher than at the last scan, and the same 381.1\u202f% increase would occur if the recorded treatment were applied. Six cycles of temozolomide would raise the simulated burden by 327.6\u202f% after 180\u202fdays, while temozolomide combined with tumour\u2011treating fields would raise it by 148.0\u202f%, and bevacizumab alone would raise it by 163.8\u202f%. The model\u2019s growth\u2011suppression effects (temozolomide\u202f28\u202f%, tumour\u2011treating fields\u202f40\u202f%, bevacizumab\u202f42\u202f%) are based on published trials, not on measurements from this patient. Across 226 forecasts in 104 patients, the model\u2019s average error was 0.88, which is higher than the 0.55 error when assuming the cohort\u2019s median growth rate, indicating the model was less accurate. This is an illustrative research simulation, not a prediction for this patient and not medical advice.",
+   "source": "llm",
+   "model": "nemotron3:33b",
+   "elapsed_ms": 4951,
+   "fallback_reason": null
+  }
+ ],
+ "results_explainer": {
+  "text": "The study used 333 scans from 144 patients to test whether bevacizumab, temozolomide, ttfields, or radiation had any effect, but the drug effects were indistinguishable from zero. Predicting how much a tumour would change with treatment information was 6.6% worse than ignoring treatment altogether. Because tumours are usually growing when treatment starts, the analysis relies on clinical trial effect sizes to estimate what might happen. A patient\u2019s growth rate in one scan interval is almost unrelated to the next (correlation -0.02), so using a patient\u2019s own history to predict future change does not work. The simulation\u2019s forecasts were less accurate, with an average error of 0.88 compared to 0.55 when assuming the cohort median growth rate. The mortality risk model achieved an AUC of 0.74 in pooled data, but performed poorly on individual cohorts (AUCs of 0.72, 0.56, and 0.46), showing limited transferability. This work is a research demonstration, not a clinical tool.",
+  "source": "llm",
+  "model": "nemotron3:33b",
+  "elapsed_ms": 3538,
+  "fallback_reason": null
+ }
+}

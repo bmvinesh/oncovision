@@ -1,0 +1,77 @@
+{
+ "info": {
+  "machine": "Linux-6.17.0-1014-nvidia-aarch64-with-glibc2.39",
+  "processor": "aarch64",
+  "torch": "2.14.1+cu130",
+  "cuda": true,
+  "gpu": "NVIDIA GB10"
+ },
+ "rows": [
+  {
+   "backend": "numpy-scipy (1 thread)",
+   "grid": 64,
+   "batch_requested": 64,
+   "batch_timed": 2,
+   "steps": 60,
+   "seconds_timed": 0.208,
+   "seconds_for_requested_batch": 6.657,
+   "extrapolated": true,
+   "gvoxel_steps_per_s": 0.151
+  },
+  {
+   "backend": "torch-cpu",
+   "grid": 64,
+   "batch_requested": 64,
+   "batch_timed": 8,
+   "steps": 60,
+   "seconds_timed": 0.325,
+   "seconds_for_requested_batch": 2.596,
+   "extrapolated": true,
+   "gvoxel_steps_per_s": 0.388
+  },
+  {
+   "backend": "torch-cuda",
+   "grid": 64,
+   "batch_requested": 64,
+   "batch_timed": 64,
+   "steps": 60,
+   "seconds_timed": 0.952,
+   "seconds_for_requested_batch": 0.952,
+   "extrapolated": false,
+   "gvoxel_steps_per_s": 1.058
+  },
+  {
+   "backend": "numpy-scipy (1 thread)",
+   "grid": 128,
+   "batch_requested": 8,
+   "batch_timed": 1,
+   "steps": 60,
+   "seconds_timed": 1.062,
+   "seconds_for_requested_batch": 8.496,
+   "extrapolated": true,
+   "gvoxel_steps_per_s": 0.118
+  },
+  {
+   "backend": "torch-cpu",
+   "grid": 128,
+   "batch_requested": 8,
+   "batch_timed": 2,
+   "steps": 60,
+   "seconds_timed": 0.599,
+   "seconds_for_requested_batch": 2.395,
+   "extrapolated": true,
+   "gvoxel_steps_per_s": 0.42
+  },
+  {
+   "backend": "torch-cuda",
+   "grid": 128,
+   "batch_requested": 8,
+   "batch_timed": 8,
+   "steps": 60,
+   "seconds_timed": 0.95,
+   "seconds_for_requested_batch": 0.95,
+   "extrapolated": false,
+   "gvoxel_steps_per_s": 1.059
+  }
+ ]
+}
