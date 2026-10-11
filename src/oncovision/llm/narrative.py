@@ -48,11 +48,29 @@ WORSE = ["worse", "less accurate", "less well", "poorer", "lower accuracy", "did
 BETTER = ["better", "more accurate", "improv", "beat ", "outperform", "lower error", "smaller error"]
 
 
-def _claim(text: str, number: str | None = None, must: list[str] | None = None, must_not: list[str] | None = None) -> dict:
-    return {"text": text, "number": number, "must": must or [], "must_not": must_not or []}
+def _claim(text: str, number: str | None = None, must: list[str] | None = None, must_not: list[str] | None = None,
+           binds: list[str] | None = None, excludes: list[str] | None = None) -> dict:
+    """``binds``/``excludes`` tie the number to its subject: a clause quoting the number must name one of
+    ``binds`` and none of ``excludes`` (so a figure cannot be moved to another scenario or agent)."""
+    return {"text": text, "number": number, "must": must or [], "must_not": must_not or [],
+            "binds": binds or [], "excludes": excludes or []}
 
 
 # ------------------------------------------------------------------ claims
+SCENARIO_BIND = {
+    "no_further_treatment": (["no further treatment", "without treatment", "without any treatment", "no treatment",
+                              "untreated", "not treated", "without further treatment", "no additional treatment"],
+                             ["recorded", "temozolomide", "bevacizumab", "treating fields", "ttfields"]),
+    "as_recorded": (["recorded"], ["no further", "temozolomide", "bevacizumab", "treating fields", "ttfields",
+                                   "untreated", "without"]),
+    "tmz_6_cycles": (["temozolomide"], ["treating fields", "ttfields", "bevacizumab", "recorded", "no further",
+                                        "untreated", "without"]),
+    "tmz_plus_ttfields": (["treating fields", "ttfields"], ["bevacizumab", "recorded", "no further", "untreated",
+                                                            "without"]),
+    "bevacizumab": (["bevacizumab"], ["temozolomide", "treating fields", "ttfields", "recorded", "no further",
+                                      "untreated", "without"]),
+}
+
 SCENARIO_LABEL = {
     "no_further_treatment": "with no further treatment", "as_recorded": "with the treatment recorded in the chart",
     "tmz_6_cycles": "with six cycles of temozolomide", "tmz_plus_ttfields": "with temozolomide plus tumour treating fields",
@@ -88,7 +106,8 @@ def case_claims(case: dict, effects: dict | None = None, forecast: dict | None =
         cl.append(_claim(
             f"{SCENARIO_LABEL[name].capitalize()}, the modelled burden after {h} days is {abs(pct):.1f}% "
             f"{'higher' if up else 'lower'} than at the last scan.", f"{abs(pct):.1f}",
-            must=UP if up else DOWN, must_not=DOWN if up else UP))
+            must=UP if up else DOWN, must_not=DOWN if up else UP,
+            binds=SCENARIO_BIND[name][0], excludes=SCENARIO_BIND[name][1]))
     if effects:
         parts = [f"{a} {round(100 * v['suppress'])}%" for a, v in effects.items()
                  if isinstance(v, dict) and v.get("suppress")]
@@ -208,6 +227,23 @@ def polarity_violations(text: str, claims: list[dict]) -> list[str]:
                     bad.append(f"{c['number']}: missing direction in '{s.strip()[:80]}'")
                 elif any(w in low for w in c["must_not"]):
                     bad.append(f"{c['number']}: opposite direction in '{s.strip()[:80]}'")
+    return bad
+
+
+def binding_violations(text: str, claims: list[dict]) -> list[str]:
+    """A clause quoting a bound number must name that claim's subject and none of the excluded ones.  When two
+    claims share a number (e.g. two scenarios that coincide) the clause may satisfy either."""
+    bad = []
+    for sent in _sentences(text):
+        low = sent.lower()
+        for m in _NUM.finditer(sent):
+            tok = m.group(0).replace(",", "")
+            cands = [c for c in claims if c.get("binds") and c.get("number") == tok]
+            if not cands:
+                continue
+            ok = any(any(b in low for b in c["binds"]) and not any(x in low for x in c["excludes"]) for c in cands)
+            if not ok:
+                bad.append(f"{tok}: not tied to {' / '.join(cands[0]['binds'][:2])} in '{sent.strip()[:80]}'")
     return bad
 
 
