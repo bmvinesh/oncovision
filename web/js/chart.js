@@ -98,6 +98,12 @@ export class Chart {
     const order = [...vis.filter((k) => k !== d.active), ...(vis.includes(d.active) ? [d.active] : [])];
     for (const k of order) {
       const s = p.scenarios[k], si = scenInfo(k, p.scenarioKeys.indexOf(k));
+      if (s.lo && s.hi && k === d.active) {
+        // uncertainty band, drawn only when the data file carries one for this scenario
+        const up = s.day.map((t, i) => `${X(t).toFixed(1)},${Y(Math.max(s.hi[i], yMin)).toFixed(1)}`);
+        const dn = s.day.map((t, i) => `${X(t).toFixed(1)},${Y(Math.max(s.lo[i], yMin)).toFixed(1)}`).reverse();
+        g += `<polygon points="${[...up, ...dn].join(" ")}" fill="${si.color}" fill-opacity=".14" stroke="${si.color}" stroke-opacity=".5" stroke-width="1" stroke-dasharray="2 3"><title>Uncertainty range for ${esc(si.label)} (illustrative)</title></polygon>`;
+      }
       const pts = s.day.map((t, i) => (isNum(s.burden[i]) && s.burden[i] > 0 ? `${X(t).toFixed(1)},${Y(s.burden[i]).toFixed(1)}` : null)).filter(Boolean).join(" ");
       const act = k === d.active;
       g += `<polyline points="${pts}" fill="none" stroke="${si.color}" stroke-width="${act ? 3 : 1.8}" ${si.dash ? `stroke-dasharray="${si.dash}"` : ""} stroke-linejoin="round" stroke-linecap="round" opacity="${act ? 1 : 0.9}"/>`;

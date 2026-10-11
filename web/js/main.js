@@ -7,6 +7,9 @@ import { Chart } from "./chart.js";
 import { Picker } from "./picker.js";
 import { renderFromData } from "./modelcard.js";
 import { renderExplanation, probeApi } from "./explain.js";
+import { renderDevice } from "./device.js";
+import { initTour } from "./tour.js";
+import { initDatasetSwitch, renderRisk, initUpload } from "./futures.js";
 import {
   fmtVol, fmtPct, fmtDay, fmtNum, isNum, NA, esc, scenInfo, statusInfo, DATASET_LABEL, AGENT_LABEL, markerSvg,
 } from "./format.js";
@@ -34,7 +37,7 @@ let picker = null;
 let glOk = false;
 let frameSet = { id: null, obs: null, scen: {} }; // buffers for the selected patient
 let loadToken = 0;
-let opts = { clip: { on: false, axis: "z", pos: 0.5, flip: false }, opacity: 1.3, scale: "patient" };
+let opts = { clip: { on: false, axis: "z", pos: 0.5, flip: false }, opacity: 2, scale: "patient" };
 
 // ---------- theme ----------
 function initTheme() {
@@ -177,7 +180,7 @@ function frameFor(p, key, t) {
 }
 
 // ---------- rendering ----------
-const RAMP = [[0x14, 0x60, 0x7a], [0x2a, 0xa9, 0xc8], [0x62, 0xdc, 0xf2], [0xf4, 0xfd, 0xff]];
+const RAMP = [[0x66, 0x50, 0xc8], [0xa8, 0x62, 0xcc], [0xf0, 0x75, 0x9a], [0xff, 0xf3, 0xf5]];
 function rampRGB(d) {
   d = Math.min(1, Math.max(0, d));
   const sm = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
@@ -209,7 +212,7 @@ function drawSlice(fr, invMax) {
       else if (axis === "y") d = v(r, i0, c) * (1 - w) + v(r, i1, c) * w;
       else d = v(r, c, i0) * (1 - w) + v(r, c, i1) * w;
       const dn = d * invMax;
-      const col = rampRGB(dn).map((c, k) => [4, 8, 12][k] + (c - [4, 8, 12][k]) * Math.min(1, dn / 0.06));
+      const col = rampRGB(dn).map((c, k) => [11, 14, 20][k] + (c - [11, 14, 20][k]) * Math.min(1, dn / 0.06));
       const o = (r * N + c) * 4;
       img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 255;
     }
@@ -336,7 +339,10 @@ function renderPatientStatic(p) {
     warn.hidden = false;
   } else { warn.hidden = true; }
 
-  renderExplanation($("ro-explain"), p.narrative, { uid: p.uid, onUpdate: (n) => { p.narrative = n; } });
+  const onNarr = (n) => { p.narrative = n; $("checked-empty").hidden = !$("ro-explain").hidden; };
+  renderExplanation($("ro-explain"), p.narrative, { uid: p.uid, onUpdate: onNarr });
+  $("checked-empty").hidden = !$("ro-explain").hidden;
+  renderRisk($("risk-slot"), p);
 
   // what these numbers rest on
   const c = p.calib;
@@ -371,6 +377,7 @@ function renderPatientStatic(p) {
 
   // chart note
   const bits = ["Circles are measured scans (seed burden). Hatched area is forecast and illustrative."];
+  if (p.scenarioKeys.some((k) => p.scenarios[k].lo && p.scenarios[k].hi)) bits.push("The shaded band is the uncertainty range for the selected scenario.");
   if (nonePath) bits.push('"As recorded" matches "No further treatment" because nothing was recorded after the last scan.');
   $("chart-note").textContent = bits.join(" ");
 
@@ -517,6 +524,41 @@ function updatePlayButton(s) {
   $("play-ico").setAttribute("d", s.playing ? "M6 4.5h4.5v15H6zM13.5 4.5H18v15h-4.5z" : "M7 4.5v15l12-7.5z");
 }
 
+// ---------- guided tour hooks ----------
+function tourControl() {
+  const setCompare = (k) => {
+    const s = store.get();
+    if (!s.patient || (k && (!s.patient.scenarios[k] || k === s.scenario || !glOk))) return;
+    store.set({ compare: k });
+    if (k) ensureFrames(s.patient, loadToken);
+  };
+  return {
+    state: () => store.get(),
+    play: () => setPlaying(true),
+    stop: () => store.set({ playing: false }),
+    jumpTo: (t) => store.set({ playing: false, t }),
+    setCompare,
+    /** Start from the no-treatment scenario when the patient has it, so the comparison has a reference. */
+    prepare: () => {
+      const s = store.get();
+      if (s.patient && s.patient.scenarios.no_further_treatment && s.scenario !== "no_further_treatment") {
+        store.set({ scenario: "no_further_treatment", compare: "" });
+        ensureFrames(s.patient, loadToken);
+      }
+    },
+    /** The scenario with 3D frames whose final burden is furthest from the selected one. */
+    bestCompare: () => {
+      const s = store.get(), p = s.patient;
+      if (!p || !glOk) return "";
+      const end = (k) => { const b = p.scenarios[k].burden; return b[b.length - 1]; };
+      const ref = end(s.scenario);
+      return p.scenarioKeys
+        .filter((k) => k !== s.scenario && p.scenarios[k].frames && isNum(end(k)) && isNum(ref))
+        .sort((a, b) => Math.abs(end(b) - ref) - Math.abs(end(a) - ref))[0] || "";
+    },
+  };
+}
+
 // ---------- gizmo ----------
 function drawGizmo(camera) {
   const q = camera.quaternion.clone().invert();
@@ -524,7 +566,7 @@ function drawGizmo(camera) {
   let h = "";
   for (const [name, a] of axes) {
     const v = a.applyQuaternion(q);
-    h += `<line x1="0" y1="0" x2="${(v.x * 20).toFixed(1)}" y2="${(-v.y * 20).toFixed(1)}" stroke="#7ec9d9" stroke-width="1.6" stroke-linecap="round"/><text x="${(v.x * 27).toFixed(1)}" y="${(-v.y * 27 + 3).toFixed(1)}" text-anchor="middle">${name}</text>`;
+    h += `<line x1="0" y1="0" x2="${(v.x * 20).toFixed(1)}" y2="${(-v.y * 20).toFixed(1)}" stroke="#c9a9d6" stroke-width="1.6" stroke-linecap="round"/><text x="${(v.x * 27).toFixed(1)}" y="${(-v.y * 27 + 3).toFixed(1)}" text-anchor="middle">${name}</text>`;
   }
   $("gizmo").innerHTML = h;
 }
@@ -532,6 +574,9 @@ function drawGizmo(camera) {
 // ---------- boot ----------
 async function boot() {
   initTheme();
+  const topBar = document.querySelector(".top");
+  const setTopH = () => document.documentElement.style.setProperty("--top-h", `${topBar.offsetHeight}px`);
+  new ResizeObserver(setTopH).observe(topBar); setTopH();
   stageState("Loading patient list", { loading: true });
   glOk = webglSupported();
   try {
@@ -546,7 +591,9 @@ async function boot() {
   chip.textContent = `${cohort.kind === "fixture" ? "Sample data" : "Baked data"}: ${cohort.patients.length} patients`;
   chip.classList.toggle("is-fixture", cohort.kind === "fixture");
   renderFromData(cohort);
-  await probeApi();               // static hosting: 404 at once and the live re-run button stays hidden
+  const api = await probeApi();   // static hosting: 404 at once and the live-only controls stay hidden
+  renderDevice($("device"), api);
+  initUpload($("upload-slot"), api);
   renderExplanation($("ev-explain"), cohort.meta.explainer, { kind: "results", onUpdate: (n) => { cohort.meta.explainer = n; } });
 
   picker = new Picker({
@@ -555,6 +602,7 @@ async function boot() {
     idh: $("f-idh"), idhWrap: $("f-idh-wrap"), grade: $("f-grade"), gradeWrap: $("f-grade-wrap"),
   }, { onSelect: (p) => selectPatient(p) });
   picker.setPatients(cohort.patients);
+  initDatasetSwitch($("ds-switch"), cohort.patients, (list) => picker.setPatients(list));
 
   chart = new Chart($("chart"), {
     onScrub: (t) => store.set({ playing: false, t: Math.min(store.get().patient.tEnd, Math.max(0, t)) }),
@@ -598,6 +646,9 @@ async function boot() {
     || cohort.patients.find((p) => p.hasFrames) || cohort.patients[0];
   if (start) selectPatient(start, { scenario: q.get("s") || undefined, t: q.has("t") ? Number(q.get("t")) : undefined });
   else stageState(`No patients in the data file. ${NA}`, { error: true });
+
+  const tour = initTour(tourControl());
+  if (q.get("tour") === "1" && start) tour.start();
 }
 
 boot();
