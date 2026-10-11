@@ -30,7 +30,7 @@ MU-Glioma-Post, 333 usable intervals from 144 patients (intervals containing a d
 
 * fitted kill rate per day at full exposure: temozolomide 0.000 (95% CI 0 to 0.006), TTFields 0.000 (0 to 0.003), bevacizumab 0.003 (0 to 0.009); radiation 0.000 per Gy (0 to 0.013);
 * leave-patients-out prediction of the volume change is **6.6% worse** than a model that ignores treatment;
-* on-treatment intervals grow *faster* than off-treatment ones (median rate 0.0040/day on temozolomide vs 0.0006 off; TTFields 0.0046 vs 0.0000; bevacizumab 0.0052 vs 0.0008). Therapy is started because a tumour is progressing (confounding by indication), early post-operative intervals are noisy, and pseudo-progression follows chemoradiation.
+* crude on- vs off-treatment median growth rates (per day, whole-cohort, no adjustment): temozolomide 0.0010 vs 0.0018 (slightly slower on drug), but TTFields 0.0035 vs 0.0006, bevacizumab 0.0052 vs 0.0006, radiation in the interval 0.0043 vs 0.0015 (faster on treatment). TTFields and bevacizumab are started at progression (confounding by indication), early post-operative intervals are noisy, and pseudo-progression follows chemoradiation, so these crude contrasts do not measure drug effects.
 * UCSD-PTGBM (52 intervals, assumed schedules) gives temozolomide 0.0035/day and 0.007 per Gy; too few intervals to confirm anything.
 
 Consequence: the what-if does **not** use fitted drug effects. It uses growth suppression derived from randomised-trial progression-free-survival ratios (`priors.py`, each with its source and whether it was verified) and is labelled illustrative everywhere. The fit stays in the repo as a check that can be re-run when better data (dated doses, response-adapted designs) arrive.
