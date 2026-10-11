@@ -72,6 +72,9 @@ function normalisePatient(c) {
       day: s.day,
       burden: s.burden_mm3,
       volume: Array.isArray(s.volume_mm3) ? s.volume_mm3 : null,
+      // optional uncertainty band (proposed fields, see DESIGN.md); used only when both match burden in length
+      lo: band(s.burden_lo_mm3, s.burden_mm3),
+      hi: band(s.burden_hi_mm3, s.burden_mm3),
       frames: validFrames(s.frames),
     };
   }
@@ -116,6 +119,7 @@ function normalisePatient(c) {
     mgmt: str(cl.mgmt),
     diagnosis: str(cl.diagnosis),
     narrative: c.narrative && typeof c.narrative.text === "string" ? c.narrative : null,
+    risk: validRisk(c.risk),
   };
   p.hasFrames = keys.some((k) => scenarios[k].frames) || !!p.observedFrames;
   p.lastBurden = observed[observed.length - 1].seed;
@@ -124,6 +128,15 @@ function normalisePatient(c) {
   p.forecastChangePct = isNum(p.lastBurden) && p.lastBurden > 0 && isNum(endB) ? (endB / p.lastBurden - 1) * 100 : null;
   p.hasTreatment = p.drugs.length > 0 || p.radiation.length > 0;
   return p;
+}
+
+const band = (a, ref) => (Array.isArray(a) && a.length === ref.length && a.every(isNum) ? a : null);
+
+/** Optional per-patient risk block (proposed field, see DESIGN.md). */
+function validRisk(r) {
+  if (!r || typeof r !== "object" || !isNum(r.score)) return null;
+  const drivers = Array.isArray(r.drivers) ? r.drivers.filter((d) => d && typeof d.label === "string" && isNum(d.weight)) : [];
+  return { score: r.score, drivers };
 }
 
 function validFrames(f) {
