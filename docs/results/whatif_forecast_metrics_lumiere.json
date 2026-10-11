@@ -1,0 +1,78 @@
+{
+ "dataset": "lumiere",
+ "D_mm2_per_day": 0.1,
+ "horizon_days": 180.0,
+ "forecast_metrics": {
+  "prior_shrunk_cv": {
+   "mae_log_ratio": 0.6826999972666024,
+   "weight_on_patient_rho_all_data": 0.0
+  },
+  "none_shrunk_cv": {
+   "mae_log_ratio": 0.6826999972666024,
+   "weight_on_patient_rho_all_data": 0.0
+  },
+  "prior_w0": {
+   "mae_log_ratio": 0.6826999972666024,
+   "bias": 0.384837670888682,
+   "direction_accuracy": 0.5862068965517241
+  },
+  "prior_w0.25": {
+   "mae_log_ratio": 0.8296006249288478,
+   "bias": 0.027027288632800805,
+   "direction_accuracy": 0.49843260188087773
+  },
+  "prior_w0.5": {
+   "mae_log_ratio": 1.1851612216203586,
+   "bias": -0.4102173805820599,
+   "direction_accuracy": 0.45141065830721006
+  },
+  "prior_w0.75": {
+   "mae_log_ratio": 1.6243656034254657,
+   "bias": -0.8623406681773941,
+   "direction_accuracy": 0.43260188087774293
+  },
+  "prior_w1": {
+   "mae_log_ratio": 2.102603414116774,
+   "bias": -1.3502133399488911,
+   "direction_accuracy": 0.4169278996865204
+  },
+  "none_w0": {
+   "mae_log_ratio": 0.6826999972666024,
+   "bias": 0.384837670888682,
+   "direction_accuracy": 0.5862068965517241
+  },
+  "none_w0.25": {
+   "mae_log_ratio": 0.8296006249288478,
+   "bias": 0.027027288632800805,
+   "direction_accuracy": 0.49843260188087773
+  },
+  "none_w0.5": {
+   "mae_log_ratio": 1.1851612216203586,
+   "bias": -0.4102173805820599,
+   "direction_accuracy": 0.45141065830721006
+  },
+  "none_w0.75": {
+   "mae_log_ratio": 1.6243656034254657,
+   "bias": -0.8623406681773941,
+   "direction_accuracy": 0.43260188087774293
+  },
+  "none_w1": {
+   "mae_log_ratio": 2.102603414116774,
+   "bias": -1.3502133399488911,
+   "direction_accuracy": 0.4169278996865204
+  },
+  "cohort_median_rate": {
+   "mae_log_ratio": 0.6101003221307046,
+   "bias": 0.0148478461995861,
+   "direction_accuracy": 0.5862068965517241
+  },
+  "no_change": {
+   "mae_log_ratio": 0.6169996507364494,
+   "bias": -0.10296289000462423,
+   "direction_accuracy": 0.0
+  },
+  "n_forecasts": 319,
+  "n_patients": 61,
+  "note": "ratio forecasts of the next scan's seed burden; w = weight on the patient's own calibrated rho vs the cohort median"
+ }
+}

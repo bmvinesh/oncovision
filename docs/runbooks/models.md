@@ -9,7 +9,7 @@ calibration. Aggregate results are in `docs/results/`; fitted artefacts stay on 
 | Pooled mortality risk (XGBoost) | `risk/risk_model.json`, `risk/risk_drivers.json`, `risk/risk_model_card.json`, out-of-fold scores in `risk_pooled_metrics_scores.parquet` | `src/oncovision/risk/pooled.py` | trained and saved |
 | Growth-rate model (XGBoost, pseudo-Huber) | `growth/growth_model.json`, `growth/growth_metrics.json`, `growth/growth_params.parquet` (out-of-fold) | `src/oncovision/growth/train.py` | trained and saved |
 | Treatment-effect fit (ridge, sign-constrained) | `treatment_effects.json` | `src/oncovision/treatment/fit.py` | fitted; effects not identifiable (see `treatment-effects.md`) |
-| PDE per-patient growth-rate calibration | `whatif/<dataset>/whatif_cases.json` | `src/oncovision/sim/whatif.py` | MU (150 patients), UCSD (48); LUMIERE see below |
+| PDE per-patient growth-rate calibration | `whatif/<dataset>/whatif_cases.json` | `src/oncovision/sim/whatif.py` | MU (150 patients), UCSD (48), LUMIERE (74) |
 
 ## Mortality risk (676 patients: UCSF-LPTDG 298, MU-Glioma-Post 202, UCSD-PTGBM 176; 371 deceased)
 
@@ -45,9 +45,12 @@ ones grow) together with grade; mean gain by feature is led by grade 0.14, whole
 | --- | --- | --- | --- | --- | --- | --- |
 | MU-Glioma-Post | 150 | 75 ok, 71 shrinking, 4 no convergence | 226 | 0.88 / 0.83 | 0.55 | 0.56 |
 | UCSD-PTGBM | 48 | 32 ok, 16 shrinking | 16 | 0.94 / 0.85 | 0.74 | 0.66 |
+| LUMIERE (no treatment recorded) | 74 | 17 ok, 56 shrinking, 1 no convergence | 319 | 0.68 / 0.68 (CV chose weight 0 on the patient's own rho) | 0.61 | 0.62 |
 
-The PDE forecast does not beat trivial baselines in either cohort (UCSD has only 16 forecasts). Including the
-recorded treatment schedule does not help. Use the what-if as an illustration of mechanism, as labelled in the viewer.
+The PDE forecast does not beat trivial baselines in any of the three cohorts (UCSD has only 16 forecasts). Including the
+recorded treatment schedule does not help. In LUMIERE three quarters of first-interval calibrations needed the shrinking
+branch and cross-validation put zero weight on the patient's own calibrated rate, i.e. calibration added nothing.
+Use the what-if as an illustration of mechanism, as labelled in the viewer.
 
 ## Not done
 
