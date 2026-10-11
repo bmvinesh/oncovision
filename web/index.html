@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>OncoVision</title>
+<meta name="description" content="Research demo: simulate how a glioma's burden changes under different treatment scenarios, seeded from real scan segmentations. Illustrative; not clinical advice.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23070b10'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%2338d3ec' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%2338d3ec'/%3E%3C/svg%3E">
+<link rel="preload" href="vendor/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="vendor/fonts.css">
+<link rel="stylesheet" href="css/app.css">
+<script>
+  /* Apply a saved theme choice before first paint (falls back to the OS setting). */
+  try { var th = localStorage.getItem("oncovision-theme"); if (th === "light" || th === "dark") document.documentElement.dataset.theme = th; } catch (e) {}
+</script>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js" } }
+</script>
+</head>
+<body>
+<a class="skip" href="#workspace">Skip to the workspace</a>
+
+<header class="top">
+  <a class="brand" href="#top" aria-label="OncoVision, top of page">
+    <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><circle cx="16" cy="16" r="10" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="3.4" fill="currentColor"/></svg>
+    <span>OncoVision</span>
+  </a>
+  <nav aria-label="Sections">
+    <a href="#workspace">Workspace</a>
+    <a href="#evidence">Evidence</a>
+    <a href="#model-card">Model card</a>
+  </nav>
+  <div class="top-end">
+    <span id="data-chip" class="chip" role="status">Loading data</span>
+    <button id="theme-btn" class="btn btn-ghost" type="button" aria-label="Switch colour theme">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9c-5 1-10-4-9-9z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="honesty" role="note">
+  <p><strong>Research demo, not clinical advice.</strong>
+  <span class="long">Treatment effects in these scenarios are literature priors from randomised trials. In our retrospective data they could not be identified, so every forecast below is illustrative.</span>
+  <span class="short">Scenario effects are literature priors, not measured here.</span>
+  <a href="#model-card">How this was tested</a></p>
+</div>
+
+<main id="top">
+  <section class="intro" aria-labelledby="h-intro">
+    <h1 id="h-intro">What would this tumour do if the treatment had been different?</h1>
+    <p class="lede">Each curve is a growth simulation seeded from a real patient's scan segmentations and run forward from the last scan. Scrub through time and the 3D tumour, the volume curve and the numbers move together.</p>
+    <dl class="key" aria-label="How numbers are labelled">
+      <div><dt><span class="tag tag-measured">measured</span></dt><dd>From the patient's own scan segmentations.</dd></div>
+      <div><dt><span class="tag tag-illustrative">illustrative</span></dt><dd>Simulated. Effects come from published trials, not from this cohort.</dd></div>
+      <div><dt><span class="tag tag-fixture">sample data</span></dt><dd>From the small bundled sample, not the full cohort.</dd></div>
+    </dl>
+  </section>
+
+  <section id="workspace" class="ws" aria-labelledby="h-ws">
+    <h2 id="h-ws" class="sr-only">Workspace</h2>
+
+    <details id="picker" class="panel picker" open>
+      <summary id="picker-summary"><span class="picker-sum-label">Patient</span> <span id="picker-title" class="mono">none selected</span></summary>
+      <div class="picker-body">
+        <label class="sr-only" for="q">Search patient ID</label>
+        <input id="q" type="search" placeholder="Search patient ID" autocomplete="off" spellcheck="false">
+        <div class="filters">
+          <label>Fit status
+            <select id="f-status"><option value="">Any</option></select>
+          </label>
+          <label>Sort by
+            <select id="f-sort">
+              <option value="id">Patient ID</option>
+              <option value="last">Burden at last scan</option>
+              <option value="growth">Forecast change, no treatment</option>
+              <option value="scans">Number of scans</option>
+              <option value="span">Follow-up length</option>
+            </select>
+          </label>
+          <label class="check"><input id="f-frames" type="checkbox"> 3D frames only</label>
+          <label class="check"><input id="f-tx" type="checkbox"> Treatment recorded</label>
+        </div>
+        <div id="plist" class="plist" role="listbox" tabindex="0" aria-label="Patients" aria-describedby="plist-count"></div>
+        <p id="plist-count" class="plist-count" aria-live="polite"></p>
+      </div>
+    </details>
+
+    <div class="center">
+      <section class="panel stage-panel" aria-label="3D tumour viewer">
+        <div class="stage-head">
+          <div class="stage-title">
+            <span id="lbl-patient" class="mono">No patient</span>
+            <span id="lbl-scenario" class="stage-scen"></span>
+          </div>
+          <div class="stage-tags" id="stage-tags"></div>
+        </div>
+
+        <div id="stage" class="stage" tabindex="0" aria-label="3D tumour. Arrow keys orbit, plus and minus zoom, R resets the view."
+             aria-describedby="stage-help">
+          <div id="gl" class="gl"></div>
+          <div id="split-labels" class="split-labels" hidden></div>
+          <svg id="gizmo" class="gizmo" viewBox="-32 -32 64 64" aria-hidden="true"></svg>
+          <div class="slice-inset" id="slice-wrap" hidden>
+            <canvas id="slice" width="128" height="128" aria-label="Cross-section at the cut plane"></canvas>
+            <span id="slice-label" class="mono"></span>
+          </div>
+          <div id="stage-state" class="stage-state" role="status">
+            <div class="orb" aria-hidden="true"></div>
+            <p id="stage-state-text">Choose a patient</p>
+            <div class="bar" id="stage-bar" hidden><span></span></div>
+          </div>
+        </div>
+        <div class="legend-row">
+          <div class="legend" role="group" aria-label="Colour legend">
+            <div class="legend-ramp" aria-hidden="true"></div>
+            <div class="legend-ticks mono"><span id="lg-0">0</span><span id="lg-1"></span><span id="lg-2"></span></div>
+          </div>
+          <div class="legend-text">
+            <p class="legend-note">Cell-density seed, illustrative. MRI does not measure cell density. <span id="lg-scale"></span></p>
+            <p class="scalebar mono" id="scalebar"></p>
+          </div>
+        </div>
+        <p id="gl-note" class="gl-note" role="note" hidden>The 3D view is off because this browser has no WebGL 2. A 2D cross-section is shown instead; the chart and numbers work as usual.</p>
+        <p id="stage-help" class="sr-only">Drag to orbit, scroll to zoom. The cut plane hides one side of the tumour so the inside is visible.</p>
+
+      <div class="transport" role="group" aria-label="Time">
+          <div class="transport-row">
+            <button id="play" class="btn btn-primary" type="button" aria-label="Play">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path id="play-ico" d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>
+            </button>
+            <div class="time-readout mono" id="t-readout" aria-live="off">Day 0</div>
+            <label class="speed">Speed
+              <select id="speed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option><option value="4">4x</option></select>
+            </label>
+            <div class="jumps" role="group" aria-label="Jump to">
+              <button id="j-first" class="btn" type="button">First scan</button>
+              <button id="j-last" class="btn" type="button">Last scan</button>
+              <button id="j-end" class="btn" type="button">End of forecast</button>
+            </div>
+          </div>
+          <label class="sr-only" for="t-range">Time in days since the first scan</label>
+          <input id="t-range" class="t-range" type="range" min="0" max="100" step="1" value="0">
+          <p id="t-phase" class="t-phase"></p>
+        </div>
+
+        <div class="stage-controls">
+          <div class="seg" role="group" aria-label="Cross-section">
+            <label class="switch"><input id="clip-on" type="checkbox"><span>Cross-section</span></label>
+            <div class="axis" role="radiogroup" aria-label="Cut plane axis">
+              <label><input type="radio" name="axis" value="z" checked><span>Z</span></label>
+              <label><input type="radio" name="axis" value="y"><span>Y</span></label>
+              <label><input type="radio" name="axis" value="x"><span>X</span></label>
+            </div>
+            <label class="range"><span>Plane position</span><input id="clip-pos" type="range" min="0" max="100" value="50" aria-valuetext="50 percent"></label>
+            <label class="check"><input id="clip-flip" type="checkbox"> Flip side</label>
+          </div>
+          <div class="seg" role="group" aria-label="Display">
+            <label class="range"><span>Opacity</span><input id="opacity" type="range" min="30" max="250" value="130"></label>
+            <label>Colour scale
+              <select id="dens-scale">
+                <option value="patient">Stretch to patient maximum</option>
+                <option value="absolute">Absolute density 0 to 1</option>
+              </select>
+            </label>
+            <label class="check"><input id="autorotate" type="checkbox"> Auto-rotate</label>
+            <button id="reset-view" class="btn" type="button">Reset view</button>
+          </div>
+          <div class="seg" role="group" aria-label="Comparison">
+            <label>Compare side by side with
+              <select id="compare"><option value="">Nothing</option></select>
+            </label>
+          </div>
+        </div>
+      </section>
+
+
+      <section class="panel chart-panel" aria-label="Tumour burden over time">
+        <div class="chart-head">
+          <h3>Tumour burden over time</h3>
+          <label class="check"><input id="chart-log" type="checkbox"> Log scale</label>
+        </div>
+        <div id="chart" class="chart"></div>
+        <p id="chart-note" class="note"></p>
+      </section>
+    </div>
+
+    <aside class="panel readout" aria-label="Numbers at the selected time">
+      <div id="ro-warn" class="callout" hidden></div>
+      <div class="ro-block">
+        <div class="ro-day"><span id="ro-day" class="mono">0</span><span class="ro-unit">days since first scan</span></div>
+        <p id="ro-phase" class="ro-phase"></p>
+      </div>
+      <div class="ro-block">
+        <h3>Tumour burden <span id="ro-burden-tag"></span></h3>
+        <p class="ro-big"><span id="ro-burden">not available</span></p>
+        <dl class="ro-list">
+          <div><dt>Change since last scan</dt><dd id="ro-vs-last">not available</dd></div>
+          <div><dt>Versus no further treatment</dt><dd id="ro-vs-none">not available</dd></div>
+          <div><dt>Volume at density 0.5 or more</dt><dd id="ro-vol">not available</dd></div>
+        </dl>
+      </div>
+      <div class="ro-block">
+        <h3>Scenarios at this time</h3>
+        <div class="table-wrap">
+          <table id="scen-table" class="data">
+            <thead><tr><th scope="col">Scenario</th><th scope="col" class="num">Burden</th><th scope="col" class="num">vs none</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="note">Radio picks the 3D view. The checkbox shows or hides a curve. All rows are <span class="tag tag-illustrative">illustrative</span>.</p>
+      </div>
+      <details class="ro-details">
+        <summary>What these numbers rest on</summary>
+        <div id="ro-rests" class="prose small"></div>
+      </details>
+      <details class="ro-details">
+        <summary>Patient facts</summary>
+        <dl id="ro-facts" class="ro-list"></dl>
+      </details>
+    </aside>
+  </section>
+
+  <section id="evidence" class="evidence" aria-labelledby="h-ev">
+    <h2 id="h-ev">What the evidence says</h2>
+    <p class="lede narrow">Four results decide how much weight the simulation deserves. They are stated here in full, including the ones that go against the demo.</p>
+    <div class="bento">
+      <article class="bcard b-wide b-hero">
+        <h3>Treatment effects were not identifiable in our data</h3>
+        <p class="b-big"><span class="num-serif">6.6%</span><span class="b-unit">worse than a no-treatment baseline</span></p>
+        <p>Leave-patients-out cross-validation, 333 intervals from 144 patients (MU-Glioma-Post). Fitted kill rates for temozolomide, TTFields and radiation are 0, with confidence intervals that include 0.</p>
+        <div id="bento-fit" class="viz"></div>
+        <p class="b-foot"><span class="tag tag-measured">measured</span> <a href="#mc-fit">Details</a></p>
+      </article>
+      <article class="bcard">
+        <h3>Mortality risk model</h3>
+        <p class="b-big"><span class="num-serif">0.74</span><span class="b-unit">pooled AUC, 676 patients</span></p>
+        <p>Held out by dataset it falls to 0.72, 0.56 and 0.46. The last is chance.</p>
+        <div id="bento-risk" class="viz"></div>
+        <p class="b-foot"><span class="tag tag-measured">measured</span> <a href="#mc-risk">Details</a></p>
+      </article>
+      <article class="bcard">
+        <h3>What the scenarios assume</h3>
+        <p class="b-big"><span class="num-serif">28 to 42%</span><span class="b-unit">growth suppression while an agent is active</span></p>
+        <p>Taken from trial progression-free-survival ratios. Not estimated here, and not independent of imaging pseudo-response for bevacizumab.</p>
+        <p class="b-foot"><span class="tag tag-illustrative">illustrative</span> <a href="#mc-priors">Sources</a></p>
+      </article>
+      <article class="bcard b-wide">
+        <h3>Does the model forecast the next scan?</h3>
+        <div id="bento-forecast" class="viz"></div>
+        <p id="bento-forecast-note"></p>
+        <p class="b-foot"><span class="tag tag-fixture">sample data</span> <span class="tag tag-measured">measured</span> <a href="#mc-forecast">Details</a></p>
+      </article>
+    </div>
+  </section>
+
+  <section id="model-card" class="mc" aria-labelledby="h-mc">
+    <h2 id="h-mc">Model card</h2>
+
+    <div class="mc-grid">
+      <section aria-labelledby="mc-use-h">
+        <h3 id="mc-use-h">Intended use</h3>
+        <p>Exploring how a treatment assumption changes a growth forecast for a single patient's tumour, and showing what the assumptions are. It is a research demo for a hackathon audience.</p>
+        <p><strong>Not for</strong> choosing or changing treatment, giving a prognosis, or any decision about a person.</p>
+      </section>
+
+      <section aria-labelledby="mc-sim-h">
+        <h3 id="mc-sim-h">What is simulated</h3>
+        <p>A reaction-diffusion model: cells proliferate at rate &rho;, spread with diffusion D, and are lost at rate &delta;. It is seeded from the patient's segmentation masks (core 0.95, enhancing 0.5, oedema 0.2; resection cavity excluded) and run forward from the last scan.</p>
+        <p><strong>Tumour burden</strong> is the sum of density times voxel volume, in cell-equivalent mm&sup3;. MRI does not measure cell density, so the density colouring is a modelling choice.</p>
+        <p id="mc-dataset" class="note"></p>
+      </section>
+
+      <section id="mc-fit" aria-labelledby="mc-fit-h" class="mc-wide">
+        <h3 id="mc-fit-h">Treatment-effect fit <span class="tag tag-measured">measured</span></h3>
+        <p>We fitted a per-day kill rate for each agent to growth between consecutive scans: <strong>333 intervals, 144 patients</strong> from MU-Glioma-Post. This is a finding, not a failure of the fit: in retrospective charts, treatment is given to tumours that are already progressing (confounding by indication), so treated intervals do not grow more slowly than untreated ones.</p>
+        <div class="table-wrap"><table class="data">
+          <thead><tr><th scope="col">Agent</th><th scope="col" class="num">Fitted kill rate (per day)</th><th scope="col">Interval (patient-cluster bootstrap)</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Temozolomide</th><td class="num">0</td><td>includes 0 (bounds not available)</td></tr>
+            <tr><th scope="row">TTFields</th><td class="num">0</td><td>includes 0 (bounds not available)</td></tr>
+            <tr><th scope="row">Radiation</th><td class="num">0</td><td>includes 0 (bounds not available)</td></tr>
+            <tr><th scope="row">Bevacizumab</th><td class="num">0.003</td><td>0 to 0.009</td></tr>
+          </tbody>
+        </table></div>
+        <p>Predicting held-out patients with the fitted treatment terms was <strong>6.6% worse</strong> than a baseline with no treatment effect. The scenarios therefore use literature priors instead, and say so.</p>
+      </section>
+
+      <section id="mc-priors" aria-labelledby="mc-priors-h" class="mc-wide">
+        <h3 id="mc-priors-h">Priors used in the scenarios <span class="tag tag-illustrative">illustrative</span></h3>
+        <div class="table-wrap"><table class="data" id="priors-table">
+          <thead><tr><th scope="col">Agent</th><th scope="col" class="num">Growth suppression while active</th><th scope="col">Source</th></tr></thead>
+          <tbody><tr><td colspan="3">Loading</td></tr></tbody>
+        </table></div>
+        <p class="note">The temozolomide median PFS figure (6.9 vs 5.0 months) was not independently verified; the overall-survival hazard ratio of 0.63 was. Radiation uses a placeholder, not a measured effect.</p>
+      </section>
+
+      <section id="mc-risk" aria-labelledby="mc-risk-h" class="mc-wide">
+        <h3 id="mc-risk-h">Mortality risk model <span class="tag tag-measured">measured</span></h3>
+        <p>This is a separate model from the growth simulation. It ranks patients by mortality risk and does not predict tumour growth.</p>
+        <div id="risk-chart" class="viz"></div>
+        <p>Pooled AUC is 0.74 over 676 patients. Within each dataset it is 0.78 (UCSF), 0.66 (MU) and 0.69 (UCSD). When a whole dataset is held out it is 0.72, 0.56 and 0.46, so <strong>external validation is weak</strong>, and chance for UCSD. For comparison, IDH wild-type status alone gives AUC 0.75 on UCSF.</p>
+      </section>
+
+      <section id="mc-forecast" aria-labelledby="mc-forecast-h" class="mc-wide">
+        <h3 id="mc-forecast-h">Forecast check <span class="tag tag-fixture">sample data</span> <span class="tag tag-measured">measured</span></h3>
+        <p id="mc-forecast-text">Loading</p>
+        <div class="table-wrap"><table class="data" id="forecast-table">
+          <thead><tr><th scope="col">Method</th><th scope="col" class="num">Typical error (log ratio)</th><th scope="col" class="num">Typical factor off</th><th scope="col" class="num">Direction right</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </section>
+
+      <section aria-labelledby="mc-lim-h" class="mc-wide">
+        <h3 id="mc-lim-h">Limits to keep in mind</h3>
+        <ul class="bullets">
+          <li>Scenario curves are what the model does under assumed effects. They are not what would have happened to this patient.</li>
+          <li>Growth rate &rho; is calibrated on a single interval per patient. Some fits do not converge; those are flagged and should not be read.</li>
+          <li>Density is a seed built from segmentation labels, not a measurement. The 3D view is a 32&times;32&times;32 display grid, so fine structure is lost.</li>
+          <li>Treatment records come from clinical sheets; where an end date was missing it was assumed, and the assumption is listed per patient.</li>
+          <li>Missing values are shown as "not available". They are never replaced by zero.</li>
+        </ul>
+      </section>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>OncoVision is a research demo built for a hackathon. Not a medical device and not clinical advice. Patient data are public, de-identified research cohorts used under their licences (MU-Glioma-Post and UCSD-PTGBM: CC BY 4.0). Third-party code and fonts: <a href="THIRD_PARTY.md">THIRD_PARTY.md</a>.</p>
+</footer>
+
+<noscript><p class="noscript">This viewer needs JavaScript. The what-if numbers are also in the raw JSON files.</p></noscript>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
