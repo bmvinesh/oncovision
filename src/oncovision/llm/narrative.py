@@ -41,8 +41,8 @@ SYSTEM = (
 
 _NUM = re.compile(r"(?<![\w.])-?\d+(?:[.,]\d+)?")
 
-UP = ["higher", "increase", "grow", "rise", "rises", "larger", "bigger", "up "]
-DOWN = ["lower", "decrease", "shrink", "fall", "drop", "smaller", "reduc"]
+UP = ["higher", "increas", "grow", "grew", "rise", "raise", "larger", "bigger", "up ", "expand", "greater", "more than", "above"]
+DOWN = ["lower", "decreas", "shrink", "shrank", "fall", "drop", "smaller", "reduc", "declin", "diminish", "less than", "below"]
 WORSE = ["worse", "less accurate", "less well", "poorer", "lower accuracy", "did not beat", "not better", "higher error",
          "larger error", "more error", "greater error", "above"]
 BETTER = ["better", "more accurate", "improv", "beat ", "outperform", "lower error", "smaller error"]
