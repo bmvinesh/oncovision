@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark light">
 <title>OncoVision</title>
 <meta name="description" content="Research demo: simulate how a glioma's burden changes under different treatment scenarios, seeded from real scan segmentations. Illustrative; not clinical advice.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23070b10'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%2338d3ec' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%2338d3ec'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231e1838'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23f07fa3' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23f07fa3'/%3E%3C/svg%3E">
 <link rel="preload" href="vendor/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="vendor/fonts.css">
 <link rel="stylesheet" href="css/app.css">
@@ -21,16 +21,19 @@
 <body>
 <a class="skip" href="#workspace">Skip to the workspace</a>
 
+<div class="mast">
 <header class="top">
   <a class="brand" href="#top" aria-label="OncoVision, top of page">
-    <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><circle cx="16" cy="16" r="10" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="3.4" fill="currentColor"/></svg>
+    <svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true"><circle cx="16" cy="16" r="10" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="16" cy="16" r="3.6" fill="currentColor"/></svg>
     <span>OncoVision</span>
   </a>
   <nav aria-label="Sections">
     <a href="#workspace">Workspace</a>
+    <a href="#checked">How it was checked</a>
     <a href="#evidence">Evidence</a>
     <a href="#model-card">Model card</a>
   </nav>
+  <div id="device" class="device" role="status" aria-label="Status of the local service" hidden></div>
   <div class="top-end">
     <span id="data-chip" class="chip" role="status">Loading data</span>
     <button id="theme-btn" class="btn btn-ghost" type="button" aria-label="Switch colour theme">
@@ -40,66 +43,40 @@
 </header>
 
 <div class="honesty" role="note">
-  <p><strong>Research demo, not clinical advice.</strong>
-  <span class="long">Treatment effects in these scenarios are literature priors from randomised trials. In our retrospective data they could not be identified, so every forecast below is illustrative.</span>
+  <p><strong>Illustrative research simulation, not a prediction, not medical advice.</strong>
+  <span class="long">Treatment effects in these scenarios are literature priors from randomised trials. In our retrospective data they could not be identified.</span>
   <span class="short">Scenario effects are literature priors, not measured here.</span>
   <a href="#model-card">How this was tested</a></p>
 </div>
+</div>
 
 <main id="top">
-  <section class="intro" aria-labelledby="h-intro">
-    <h1 id="h-intro">What would this tumour do if the treatment had been different?</h1>
-    <p class="lede">Each curve is a growth simulation seeded from a real patient's scan segmentations and run forward from the last scan. Scrub through time and the 3D tumour, the volume curve and the numbers move together.</p>
-    <dl class="key" aria-label="How numbers are labelled">
-      <div><dt><span class="tag tag-measured">measured</span></dt><dd>From the patient's own scan segmentations.</dd></div>
-      <div><dt><span class="tag tag-illustrative">illustrative</span></dt><dd>Simulated. Effects come from published trials, not from this cohort.</dd></div>
-      <div><dt><span class="tag tag-fixture">sample data</span></dt><dd>From the small bundled sample, not the full cohort.</dd></div>
-    </dl>
+  <section class="hero" aria-labelledby="h-intro">
+    <h1 id="h-intro">What would this tumour do <em>if the treatment had been different?</em></h1>
+    <div class="hero-side">
+      <p class="lede">A growth simulation seeded from a real patient's scan segmentations and run forward from the last scan. <strong>It runs on one local machine, built so patient data never leaves the device.</strong></p>
+      <dl class="key" aria-label="How numbers are labelled">
+        <div><dt><span class="tag tag-measured">measured</span></dt><dd>from the scans</dd></div>
+        <div><dt><span class="tag tag-illustrative">illustrative</span></dt><dd>simulated</dd></div>
+        <div><dt><span class="tag tag-fixture">sample data</span></dt><dd>bundled sample</dd></div>
+        <div><dt><span class="tag tag-ai">AI-written</span></dt><dd>checked text</dd></div>
+      </dl>
+    </div>
   </section>
 
   <section id="workspace" class="ws" aria-labelledby="h-ws">
     <h2 id="h-ws" class="sr-only">Workspace</h2>
 
-    <details id="picker" class="panel picker" open>
-      <summary id="picker-summary"><span class="picker-sum-label">Patient</span> <span id="picker-title" class="mono">none selected</span></summary>
-      <div class="picker-body">
-        <label class="sr-only" for="q">Search patient ID</label>
-        <input id="q" type="search" placeholder="Search patient ID" autocomplete="off" spellcheck="false">
-        <div class="filters">
-          <label>Fit status
-            <select id="f-status"><option value="">Any</option></select>
-          </label>
-          <label>Sort by
-            <select id="f-sort">
-              <option value="id">Patient ID</option>
-              <option value="last">Burden at last scan</option>
-              <option value="growth">Forecast change, no treatment</option>
-              <option value="scans">Number of scans</option>
-              <option value="age">Age</option>
-              <option value="span">Follow-up length</option>
-            </select>
-          </label>
-          <label id="f-idh-wrap" hidden>IDH
-            <select id="f-idh"><option value="">Any</option></select>
-          </label>
-          <label id="f-grade-wrap" hidden>WHO grade
-            <select id="f-grade"><option value="">Any</option></select>
-          </label>
-          <label class="check"><input id="f-frames" type="checkbox"> 3D frames only</label>
-          <label class="check"><input id="f-tx" type="checkbox"> Treatment recorded</label>
-        </div>
-        <div id="plist" class="plist" role="listbox" tabindex="0" aria-label="Patients" aria-describedby="plist-count"></div>
-        <p id="plist-count" class="plist-count" aria-live="polite"></p>
-      </div>
-    </details>
-
     <div class="center">
-      <section class="panel stage-panel" aria-label="3D tumour viewer">
+      <section class="panel stage-panel" id="stage-panel" aria-label="3D tumour viewer">
         <div class="stage-head">
           <div class="stage-title">
             <span id="lbl-patient" class="mono">No patient</span>
             <span id="lbl-scenario" class="stage-scen"></span>
           </div>
+          <label class="stage-cmp">Compare with
+            <select id="compare"><option value="">Nothing</option></select>
+          </label>
           <div class="stage-tags" id="stage-tags"></div>
         </div>
 
@@ -131,7 +108,7 @@
         <p id="gl-note" class="gl-note" role="note" hidden>The 3D view is off because this browser has no WebGL 2. A 2D cross-section is shown instead; the chart and numbers work as usual.</p>
         <p id="stage-help" class="sr-only">Drag to orbit, scroll to zoom. The cut plane hides one side of the tumour so the inside is visible.</p>
 
-      <div class="transport" role="group" aria-label="Time">
+        <div class="transport" id="transport" role="group" aria-label="Time">
           <div class="transport-row">
             <button id="play" class="btn btn-primary" type="button" aria-label="Play">
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path id="play-ico" d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>
@@ -151,38 +128,35 @@
           <p id="t-phase" class="t-phase"></p>
         </div>
 
-        <div class="stage-controls">
-          <div class="seg" role="group" aria-label="Cross-section">
-            <label class="switch"><input id="clip-on" type="checkbox"><span>Cross-section</span></label>
-            <div class="axis" role="radiogroup" aria-label="Cut plane axis">
-              <label><input type="radio" name="axis" value="z" checked><span>Z</span></label>
-              <label><input type="radio" name="axis" value="y"><span>Y</span></label>
-              <label><input type="radio" name="axis" value="x"><span>X</span></label>
+        <details class="stage-more" id="stage-more">
+          <summary>View options: cross-section, opacity, colour scale</summary>
+          <div class="stage-controls">
+            <div class="seg" role="group" aria-label="Cross-section">
+              <label class="switch"><input id="clip-on" type="checkbox"><span>Cross-section</span></label>
+              <div class="axis" role="radiogroup" aria-label="Cut plane axis">
+                <label><input type="radio" name="axis" value="z" checked><span>Z</span></label>
+                <label><input type="radio" name="axis" value="y"><span>Y</span></label>
+                <label><input type="radio" name="axis" value="x"><span>X</span></label>
+              </div>
+              <label class="range"><span>Plane position</span><input id="clip-pos" type="range" min="0" max="100" value="50" aria-valuetext="50 percent"></label>
+              <label class="check"><input id="clip-flip" type="checkbox"> Flip side</label>
             </div>
-            <label class="range"><span>Plane position</span><input id="clip-pos" type="range" min="0" max="100" value="50" aria-valuetext="50 percent"></label>
-            <label class="check"><input id="clip-flip" type="checkbox"> Flip side</label>
+            <div class="seg" role="group" aria-label="Display">
+              <label class="range"><span>Opacity</span><input id="opacity" type="range" min="30" max="300" value="200"></label>
+              <label>Colour scale
+                <select id="dens-scale">
+                  <option value="patient">Stretch to patient maximum</option>
+                  <option value="absolute">Absolute density 0 to 1</option>
+                </select>
+              </label>
+              <label class="check"><input id="autorotate" type="checkbox"> Auto-rotate</label>
+              <button id="reset-view" class="btn" type="button">Reset view</button>
+            </div>
           </div>
-          <div class="seg" role="group" aria-label="Display">
-            <label class="range"><span>Opacity</span><input id="opacity" type="range" min="30" max="250" value="130"></label>
-            <label>Colour scale
-              <select id="dens-scale">
-                <option value="patient">Stretch to patient maximum</option>
-                <option value="absolute">Absolute density 0 to 1</option>
-              </select>
-            </label>
-            <label class="check"><input id="autorotate" type="checkbox"> Auto-rotate</label>
-            <button id="reset-view" class="btn" type="button">Reset view</button>
-          </div>
-          <div class="seg" role="group" aria-label="Comparison">
-            <label>Compare side by side with
-              <select id="compare"><option value="">Nothing</option></select>
-            </label>
-          </div>
-        </div>
+        </details>
       </section>
 
-
-      <section class="panel chart-panel" aria-label="Tumour burden over time">
+      <section class="panel chart-panel" id="chart-panel" aria-label="Tumour burden over time">
         <div class="chart-head">
           <h3>Tumour burden over time</h3>
           <label class="check"><input id="chart-log" type="checkbox"> Log scale</label>
@@ -192,46 +166,112 @@
       </section>
     </div>
 
-    <aside class="panel readout" aria-label="Numbers at the selected time">
-      <div id="ro-warn" class="callout" hidden></div>
-      <div id="ro-explain" class="ro-block expl" hidden></div>
-      <div class="ro-block">
-        <div class="ro-day"><span id="ro-day" class="mono">0</span><span class="ro-unit">days since first scan</span></div>
-        <p id="ro-phase" class="ro-phase"></p>
-      </div>
-      <div class="ro-block">
-        <h3>Tumour burden <span id="ro-burden-tag"></span></h3>
-        <p class="ro-big"><span id="ro-burden">not available</span></p>
-        <dl class="ro-list">
-          <div><dt>Change since last scan</dt><dd id="ro-vs-last">not available</dd></div>
-          <div><dt>Versus no further treatment</dt><dd id="ro-vs-none">not available</dd></div>
-          <div><dt>Volume at density 0.5 or more</dt><dd id="ro-vol">not available</dd></div>
-        </dl>
-      </div>
-      <div class="ro-block">
-        <h3>Scenarios at this time</h3>
-        <div class="table-wrap">
-          <table id="scen-table" class="data">
-            <thead><tr><th scope="col">Scenario</th><th scope="col" class="num">Burden</th><th scope="col" class="num">vs none</th></tr></thead>
-            <tbody></tbody>
-          </table>
+    <div class="rail">
+      <nav class="panel steps" id="steps" aria-label="Guided tour">
+        <ol>
+          <li><button type="button" data-step="0">Pick a patient</button></li>
+          <li><button type="button" data-step="1">Play the forecast</button></li>
+          <li><button type="button" data-step="2">Compare two scenarios</button></li>
+          <li><button type="button" data-step="3">See how the explanation was checked</button></li>
+        </ol>
+        <button id="tour-start" class="btn btn-cta" type="button">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>
+          Play the guided tour
+        </button>
+      </nav>
+
+      <div id="ds-switch" class="panel slot-ds" hidden></div>
+
+      <details id="picker" class="panel picker" open>
+        <summary id="picker-summary"><span class="picker-sum-label">Patient</span> <span id="picker-title" class="mono">none selected</span></summary>
+        <div class="picker-body">
+          <label class="sr-only" for="q">Search patient ID</label>
+          <input id="q" type="search" placeholder="Search patient ID" autocomplete="off" spellcheck="false">
+          <div id="plist" class="plist" role="listbox" tabindex="0" aria-label="Patients" aria-describedby="plist-count"></div>
+          <p id="plist-count" class="plist-count" aria-live="polite"></p>
+          <details class="more-filters">
+            <summary>Filter and sort</summary>
+            <div class="filters">
+              <label>Fit status
+                <select id="f-status"><option value="">Any</option></select>
+              </label>
+              <label>Sort by
+                <select id="f-sort">
+                  <option value="id">Patient ID</option>
+                  <option value="last">Burden at last scan</option>
+                  <option value="growth">Forecast change, no treatment</option>
+                  <option value="scans">Number of scans</option>
+                  <option value="age">Age</option>
+                  <option value="span">Follow-up length</option>
+                </select>
+              </label>
+              <label id="f-idh-wrap" hidden>IDH
+                <select id="f-idh"><option value="">Any</option></select>
+              </label>
+              <label id="f-grade-wrap" hidden>WHO grade
+                <select id="f-grade"><option value="">Any</option></select>
+              </label>
+              <label class="check"><input id="f-frames" type="checkbox"> 3D frames only</label>
+              <label class="check"><input id="f-tx" type="checkbox"> Treatment recorded</label>
+            </div>
+          </details>
         </div>
-        <p class="note">Radio picks the 3D view. The checkbox shows or hides a curve. All rows are <span class="tag tag-illustrative">illustrative</span>.</p>
-      </div>
-      <details class="ro-details">
-        <summary>What these numbers rest on</summary>
-        <div id="ro-rests" class="prose small"></div>
       </details>
-      <details class="ro-details">
-        <summary>Patient facts</summary>
-        <dl id="ro-facts" class="ro-list"></dl>
-      </details>
-    </aside>
+
+      <aside class="panel readout" id="readout" aria-label="Numbers at the selected time">
+        <div id="ro-warn" class="callout" hidden></div>
+        <div class="ro-block">
+          <div class="ro-day"><span id="ro-day" class="mono">0</span><span class="ro-unit">days since first scan</span></div>
+          <p id="ro-phase" class="ro-phase"></p>
+        </div>
+        <div class="ro-block">
+          <h3>Tumour burden <span id="ro-burden-tag"></span></h3>
+          <p class="ro-big"><span id="ro-burden">not available</span></p>
+          <dl class="ro-list">
+            <div><dt>Change since last scan</dt><dd id="ro-vs-last">not available</dd></div>
+            <div><dt>Versus no further treatment</dt><dd id="ro-vs-none">not available</dd></div>
+            <div><dt>Volume at density 0.5 or more</dt><dd id="ro-vol">not available</dd></div>
+          </dl>
+        </div>
+        <div class="ro-block" id="scen-block">
+          <h3>Scenarios at this time</h3>
+          <div class="table-wrap">
+            <table id="scen-table" class="data">
+              <thead><tr><th scope="col">Scenario</th><th scope="col" class="num">Burden</th><th scope="col" class="num">vs none</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p class="note">Radio picks the 3D view. The checkbox shows or hides a curve. All rows are <span class="tag tag-illustrative">illustrative</span>.</p>
+        </div>
+        <details class="ro-details">
+          <summary>What these numbers rest on</summary>
+          <div id="ro-rests" class="prose small"></div>
+        </details>
+        <details class="ro-details">
+          <summary>Patient facts</summary>
+          <dl id="ro-facts" class="ro-list"></dl>
+        </details>
+      </aside>
+
+      <section id="risk-slot" class="panel slot" aria-label="Risk score" hidden></section>
+      <section id="upload-slot" class="panel slot" aria-label="Add a synthetic patient" hidden></section>
+    </div>
   </section>
 
-  <section id="evidence" class="evidence" aria-labelledby="h-ev">
+  <section id="checked" class="band" aria-labelledby="h-checked">
+    <p class="eyebrow">Two agents and a rule-based judge</p>
+    <h2 id="h-checked">Every sentence carries its receipt</h2>
+    <div class="checked-intro">
+      <p class="lede">One agent writes the explanation and must cite a verified statement for every sentence. A second agent audits each sentence. A rule-based judge, which is not a language model, checks the numbers and wording and has the last word.</p>
+    </div>
+    <div id="ro-explain" class="expl expl-panel" hidden></div>
+    <p id="checked-empty" class="note">No explanation is stored for this patient.</p>
+  </section>
+
+  <section id="evidence" class="evidence band" aria-labelledby="h-ev">
+    <p class="eyebrow">Cohort results</p>
     <h2 id="h-ev">What the evidence says</h2>
-    <div id="ev-explain" class="expl expl-wide narrow" hidden></div>
+    <div id="ev-explain" class="expl expl-panel expl-wide" hidden></div>
     <p class="lede narrow">Four results decide how much weight the simulation deserves. They are stated here in full, including the ones that go against the demo.</p>
     <div class="bento">
       <article class="bcard b-wide b-hero">
@@ -263,7 +303,8 @@
     </div>
   </section>
 
-  <section id="model-card" class="mc" aria-labelledby="h-mc">
+  <section id="model-card" class="mc band" aria-labelledby="h-mc">
+    <p class="eyebrow">Intended use, method and limits</p>
     <h2 id="h-mc">Model card</h2>
 
     <div class="mc-grid">
@@ -334,6 +375,8 @@
 <footer class="foot">
   <p>OncoVision is a research demo built for a hackathon. Not a medical device and not clinical advice. Patient data are public, de-identified research cohorts used under their licences (MU-Glioma-Post and UCSD-PTGBM: CC BY 4.0). Third-party code and fonts: <a href="THIRD_PARTY.md">THIRD_PARTY.md</a>.</p>
 </footer>
+
+<div id="tour-bar" class="tour-bar" role="region" aria-label="Guided tour" hidden></div>
 
 <noscript><p class="noscript">This viewer needs JavaScript. The what-if numbers are also in the raw JSON files.</p></noscript>
 <script type="module" src="js/main.js"></script>

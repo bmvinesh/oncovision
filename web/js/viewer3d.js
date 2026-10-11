@@ -119,7 +119,7 @@ export function webglSupported() {
   }
 }
 
-const RAMP = ["#14607a", "#2aa9c8", "#62dcf2", "#f4fdff"];
+const RAMP = ["#6650c8", "#a862cc", "#f0759a", "#fff3f5"];
 
 export class Viewer {
   /** @param {HTMLElement} host element that receives the canvas; @param {HTMLElement} eventEl element that gets pointer/key events */
@@ -152,7 +152,7 @@ export class Viewer {
     const box = new THREE.BoxGeometry(1, 1, 1);
     const edges = new THREE.LineSegments(
       new THREE.EdgesGeometry(box),
-      new THREE.LineBasicMaterial({ color: 0x38d3ec, transparent: true, opacity: 0.35, depthTest: false }),
+      new THREE.LineBasicMaterial({ color: 0xb79ad0, transparent: true, opacity: 0.3, depthTest: false }),
     );
     edges.renderOrder = 0;
     this.scene.add(edges);
@@ -259,7 +259,7 @@ export class Viewer {
     const dir = this.homeDir || (this.homeDir = this.home.clone().normalize());
     const f = this.focus;
     const target = f ? f.center : new THREE.Vector3(0, 0, 0);
-    const dist = f ? Math.min(this.home.length(), Math.max(0.75, f.radius * 4.6)) : this.home.length();
+    const dist = f ? Math.min(this.home.length(), Math.max(0.6, f.radius * 3.5)) : this.home.length();
     this.controls.target.copy(target);
     this.camera.position.copy(target).addScaledVector(dir, dist);
     this.controls.update();

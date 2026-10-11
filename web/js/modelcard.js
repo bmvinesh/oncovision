@@ -105,9 +105,9 @@ function fitPlot(W, fit) {
   rows.forEach((a, i) => {
     const y = T + rowH * i + rowH / 2;
     s += `<text x="${L - 10}" y="${y + 4}" text-anchor="end">${esc(a.label)}</text>`;
-    if (a.ci) s += `<line x1="${X(a.ci[0])}" x2="${X(a.ci[1])}" y1="${y}" y2="${y}" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>`;
-    if (a.value === 0) s += `<rect x="${X(0) - 5}" y="${y - 5}" width="10" height="10" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/>`;
-    else s += `<circle cx="${X(a.value)}" cy="${y}" r="5" fill="var(--accent)"/>`;
+    if (a.ci) s += `<line x1="${X(a.ci[0])}" x2="${X(a.ci[1])}" y1="${y}" y2="${y}" stroke="var(--measured)" stroke-width="3" stroke-linecap="round"/>`;
+    if (a.value === 0) s += `<rect x="${X(0) - 5}" y="${y - 5}" width="10" height="10" fill="var(--surface)" stroke="var(--measured)" stroke-width="2"/>`;
+    else s += `<circle cx="${X(a.value)}" cy="${y}" r="5" fill="var(--measured)"/>`;
     const lx = X(a.ci ? a.ci[1] : a.value) + 8;
     s += `<text x="${lx}" y="${y - 7}" class="v-strong">${f3(a.value)}</text>`;
     if (a.ci) s += `<text x="${lx}" y="${y + 9}">${f3(a.ci[0])} to ${f3(a.ci[1])}</text>`;
@@ -134,15 +134,15 @@ function riskPlot(compact, W, risk) {
   [0.6, 0.7, 0.8].forEach((v) => { s += `<text x="${X(v)}" y="${H - B + 16}" text-anchor="middle">${v}</text>`; });
   rows.forEach((d, i) => {
     const y = T + rowH * i;
-    const fill = d.kind === "lodo" ? `url(#${id})` : d.kind === "idh" ? "var(--text-3)" : "var(--accent)";
-    const stroke = d.kind === "lodo" ? "var(--accent)" : "none";
+    const fill = d.kind === "lodo" ? `url(#${id})` : d.kind === "idh" ? "var(--text-3)" : "var(--measured)";
+    const stroke = d.kind === "lodo" ? "var(--measured)" : "none";
     s += `<text x="${L - 10}" y="${y + rowH / 2 + 4}" text-anchor="end">${esc(d.k)}</text>`;
     s += `<rect x="${X(lo)}" y="${y + 5}" width="${Math.max(2, X(d.auc) - X(lo))}" height="${rowH - 10}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`;
     s += `<text x="${Math.max(X(d.auc), X(0.5)) + 6}" y="${y + rowH / 2 + 4}" class="v-strong">${d.auc.toFixed(2)}</text>`;
   });
   const desc = rows.map((r) => `${r.k} ${r.auc.toFixed(2)}`).join("; ");
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Risk model AUC. ${esc(desc)}. Chance is 0.5.">`
-    + `<defs><pattern id="${id}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--surface)"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--accent)" stroke-width="2.5"/></pattern></defs>${s}</svg>`
+    + `<defs><pattern id="${id}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--surface)"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--measured)" stroke-width="2.5"/></pattern></defs>${s}</svg>`
     + (compact ? "" : `<p class="note">Solid bars are pooled or within-dataset; hatched bars hold out a whole dataset; grey bars use IDH wild-type status alone. The axis starts at 0.4.</p>`);
 }
 
@@ -168,7 +168,7 @@ function forecastBars(rows, W) {
     const model = r.k === "with_treatment" || r.k === "treatment_blind";
     s += `<text x="${L - 10}" y="${y + rowH / 2 + 4}" text-anchor="end">${esc(r.label)}</text>`;
     if (r.mae === null) { s += `<text x="${L}" y="${y + rowH / 2 + 4}">${NA}</text>`; return; }
-    s += `<rect x="${X(0)}" y="${y + 5}" width="${Math.max(2, X(r.mae) - X(0))}" height="${rowH - 10}" rx="2" fill="${model ? "var(--warn)" : "var(--accent)"}" ${model ? 'fill-opacity=".85"' : ""}/>`;
+    s += `<rect x="${X(0)}" y="${y + 5}" width="${Math.max(2, X(r.mae) - X(0))}" height="${rowH - 10}" rx="2" fill="${model ? "var(--warn)" : "var(--measured)"}" ${model ? 'fill-opacity=".85"' : ""}/>`;
     s += `<text x="${X(r.mae) + 6}" y="${y + rowH / 2 + 4}" class="v-strong">${r.mae.toFixed(2)}</text>`;
   });
   s += `<text x="${L}" y="${H - 6}">typical error of the log burden ratio, lower is better</text>`;

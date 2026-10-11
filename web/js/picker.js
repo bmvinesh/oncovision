@@ -83,6 +83,7 @@ export class Picker {
     this.rows = r;
     this.els.count.textContent = `${r.length} of ${this.all.length} patients${this.all.some((p) => !p.hasFrames) ? ` · ${this.all.filter((p) => p.hasFrames).length} with 3D frames` : ""}`;
     this.inner.style.height = `${r.length * ROW}px`;
+    this.els.list.style.setProperty("--n", String(Math.max(1, r.length))); // short lists do not leave an empty box
     this.cursor = Math.max(0, r.findIndex((p) => p.uid === this.selected));
     this.paint();
   }
