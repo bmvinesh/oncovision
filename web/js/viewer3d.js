@@ -119,7 +119,8 @@ export function webglSupported() {
   }
 }
 
-const RAMP = ["#24459c", "#2f86d6", "#5fd4d6", "#f2feff"];
+// greyscale, dark to white, like a windowed scan; the same stops are in main.js (2D slice) and app.css (legend)
+const RAMP = ["#262626", "#6e6e6e", "#bdbdbd", "#ffffff"];
 
 export class Viewer {
   /** @param {HTMLElement} host element that receives the canvas; @param {HTMLElement} eventEl element that gets pointer/key events */
@@ -152,7 +153,7 @@ export class Viewer {
     const box = new THREE.BoxGeometry(1, 1, 1);
     const edges = new THREE.LineSegments(
       new THREE.EdgesGeometry(box),
-      new THREE.LineBasicMaterial({ color: 0x8fa6c4, transparent: true, opacity: 0.3, depthTest: false }),
+      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2, depthTest: false }),
     );
     edges.renderOrder = 0;
     this.scene.add(edges);

@@ -90,7 +90,8 @@ export class Chart {
     g = `<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="var(--warn)" stroke-opacity=".22" stroke-width="1.5"/></pattern></defs>`
       + `<rect x="${xl.toFixed(1)}" y="${y0}" width="${Math.max(0, x1 - xl).toFixed(1)}" height="${y1 - y0}" fill="url(#hatch)"/>`
       + `<line x1="${xl.toFixed(1)}" x2="${xl.toFixed(1)}" y1="${y0}" y2="${y1}" stroke="var(--text-3)" stroke-dasharray="4 4"/>`
-      + `<text class="ax" x="${(xl + 6).toFixed(1)}" y="${y0 + 12}">last scan: forecast starts (illustrative)</text>`
+      + (wide ? `<text class="ax" x="${(xl + 6).toFixed(1)}" y="${y0 + 12}">last scan: forecast starts (illustrative)</text>`
+        : `<text class="ax" x="${x1 - 3}" y="${y0 + 12}" text-anchor="end">forecast<tspan x="${x1 - 3}" dy="12">(illustrative)</tspan></text>`)
       + g;
     g += `<text class="ax" x="${x0 + 6}" y="${y0 + 12}">measured</text>`;
 
@@ -144,7 +145,7 @@ export class Chart {
         for (const sp of ln.spans) {
           const a = Math.max(0, sp.a), b = Math.min(tEnd, sp.b);
           if (b <= a) continue;
-          g += `<rect x="${X(a).toFixed(1)}" y="${yy}" width="${Math.max(3, X(b) - X(a)).toFixed(1)}" height="9" rx="3" fill="${ln.color}" opacity=".85"><title>${esc(ln.label)}: day ${fmtDay(sp.a)} to ${fmtDay(sp.b)}${sp.a < 0 ? " (started before the first scan)" : ""}</title></rect>`;
+          g += `<rect x="${X(a).toFixed(1)}" y="${yy}" width="${Math.max(3, X(b) - X(a)).toFixed(1)}" height="9" fill="${ln.color}" opacity=".85"><title>${esc(ln.label)}: day ${fmtDay(sp.a)} to ${fmtDay(sp.b)}${sp.a < 0 ? " (started before the first scan)" : ""}</title></rect>`;
         }
       });
     }

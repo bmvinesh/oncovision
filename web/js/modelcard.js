@@ -131,13 +131,13 @@ function riskPlot(compact, W, risk) {
   const X = (v) => L + ((v - lo) / (hi - lo)) * (W - L - R);
   const id = compact ? "hatch-risk-c" : "hatch-risk";
   let s = `<line class="v-chance" x1="${X(0.5)}" x2="${X(0.5)}" y1="${T}" y2="${H - B}"/><text x="${X(0.5)}" y="${H - B + 16}" text-anchor="middle" style="fill:var(--bad)">chance 0.5</text>`;
-  [0.6, 0.7, 0.8].forEach((v) => { s += `<text x="${X(v)}" y="${H - B + 16}" text-anchor="middle">${v}</text>`; });
+  (compact ? [0.7, 0.8] : [0.6, 0.7, 0.8]).forEach((v) => { s += `<text x="${X(v)}" y="${H - B + 16}" text-anchor="middle">${v}</text>`; });
   rows.forEach((d, i) => {
     const y = T + rowH * i;
     const fill = d.kind === "lodo" ? `url(#${id})` : d.kind === "idh" ? "var(--text-3)" : "var(--measured)";
     const stroke = d.kind === "lodo" ? "var(--measured)" : "none";
     s += `<text x="${L - 10}" y="${y + rowH / 2 + 4}" text-anchor="end">${esc(d.k)}</text>`;
-    s += `<rect x="${X(lo)}" y="${y + 5}" width="${Math.max(2, X(d.auc) - X(lo))}" height="${rowH - 10}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`;
+    s += `<rect x="${X(lo)}" y="${y + 5}" width="${Math.max(2, X(d.auc) - X(lo))}" height="${rowH - 10}" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`;
     s += `<text x="${Math.max(X(d.auc), X(0.5)) + 6}" y="${y + rowH / 2 + 4}" class="v-strong">${d.auc.toFixed(2)}</text>`;
   });
   const desc = rows.map((r) => `${r.k} ${r.auc.toFixed(2)}`).join("; ");
@@ -168,7 +168,7 @@ function forecastBars(rows, W) {
     const model = r.k === "with_treatment" || r.k === "treatment_blind";
     s += `<text x="${L - 10}" y="${y + rowH / 2 + 4}" text-anchor="end">${esc(r.label)}</text>`;
     if (r.mae === null) { s += `<text x="${L}" y="${y + rowH / 2 + 4}">${NA}</text>`; return; }
-    s += `<rect x="${X(0)}" y="${y + 5}" width="${Math.max(2, X(r.mae) - X(0))}" height="${rowH - 10}" rx="2" fill="${model ? "var(--warn)" : "var(--measured)"}" ${model ? 'fill-opacity=".85"' : ""}/>`;
+    s += `<rect x="${X(0)}" y="${y + 5}" width="${Math.max(2, X(r.mae) - X(0))}" height="${rowH - 10}" fill="${model ? "var(--warn)" : "var(--measured)"}" ${model ? 'fill-opacity=".85"' : ""}/>`;
     s += `<text x="${X(r.mae) + 6}" y="${y + rowH / 2 + 4}" class="v-strong">${r.mae.toFixed(2)}</text>`;
   });
   s += `<text x="${L}" y="${H - 6}">typical error of the log burden ratio, lower is better</text>`;

@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark light">
+<meta name="color-scheme" content="light dark">
 <title>OncoVision</title>
 <meta name="description" content="Research demo: simulate how a glioma's burden changes under different treatment scenarios, seeded from real scan segmentations. Illustrative; not clinical advice.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230f172a'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%237ea6ff' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%235cc8c0'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0a0a'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23ffffff' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='2.6' fill='%23ffffff'/%3E%3C/svg%3E">
 <link rel="preload" href="vendor/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="vendor/instrument-serif-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="vendor/fonts.css">
 <link rel="stylesheet" href="css/app.css">
 <script>
@@ -24,7 +25,7 @@
 <div class="mast">
 <header class="top">
   <a class="brand" href="#top" aria-label="OncoVision, top of page">
-    <svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true"><circle cx="16" cy="16" r="10" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="16" cy="16" r="3.6" fill="currentColor"/></svg>
+    <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="16" r="3.2" fill="currentColor"/></svg>
     <span>OncoVision</span>
     <small>In silico tumour growth what-if</small>
   </a>
@@ -40,7 +41,7 @@
     <button id="method-btn" class="btn" type="button" aria-haspopup="dialog">Evidence &amp; methodology</button>
     <span id="data-chip" class="chip" role="status">Loading data</span>
     <button id="theme-btn" class="btn btn-ghost" type="button" aria-label="Switch colour theme">
-      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9c-5 1-10-4-9-9z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 3.8a8.2 8.2 0 0 1 0 16.4z" fill="currentColor"/></svg>
     </button>
   </div>
 </header>
@@ -55,16 +56,17 @@
 
 <main id="top">
   <section class="hero" aria-labelledby="h-intro">
+    <p class="eyebrow">In silico tumour growth &middot; treatment what-if</p>
     <h1 id="h-intro">What would this tumour do <em>if the treatment had been different?</em></h1>
     <div class="hero-side">
       <p class="lede">A growth simulation seeded from a real patient's scan segmentations and run forward from the last scan. <strong>It runs on one local machine, built so patient data never leaves the device.</strong></p>
-      <dl class="key" aria-label="How numbers are labelled">
-        <div><dt><span class="tag tag-measured">measured</span></dt><dd>from the scans</dd></div>
-        <div><dt><span class="tag tag-illustrative">illustrative</span></dt><dd>simulated</dd></div>
-        <div><dt><span class="tag tag-fixture">sample data</span></dt><dd>bundled sample</dd></div>
-        <div><dt><span class="tag tag-ai">AI-written</span></dt><dd>checked text</dd></div>
-      </dl>
     </div>
+    <dl class="key" aria-label="How numbers are labelled">
+      <div><dt><span class="tag tag-measured">measured</span></dt><dd>from the scans</dd></div>
+      <div><dt><span class="tag tag-illustrative">illustrative</span></dt><dd>simulated</dd></div>
+      <div><dt><span class="tag tag-fixture">sample data</span></dt><dd>bundled sample</dd></div>
+      <div><dt><span class="tag tag-ai">AI-written</span></dt><dd>checked text</dd></div>
+    </dl>
   </section>
 
   <section id="workspace" class="ws" aria-labelledby="h-ws">
@@ -114,7 +116,7 @@
         <p id="stage-help" class="sr-only">Drag to orbit, scroll to zoom. The cut plane hides one side of the tumour so the inside is visible.</p>
 
         <div class="transport" id="transport" role="group" aria-label="Time">
-          <p class="panel-h">Timeline <span class="mono" style="letter-spacing:0;text-transform:none">days since first scan</span></p>
+          <p class="panel-h">Timeline <span class="panel-h-unit">days since first scan</span></p>
           <div class="transport-row">
             <button id="play" class="btn btn-primary" type="button" aria-label="Play">
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path id="play-ico" d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>
@@ -280,7 +282,7 @@
   </section>
 
   <section id="checked" class="band" aria-labelledby="h-checked">
-    <p class="eyebrow">Two agents and a rule-based judge</p>
+    <p class="eyebrow"><span class="idx">01</span>Two agents and a rule-based judge</p>
     <h2 id="h-checked">Every sentence carries its receipt</h2>
     <div class="checked-intro">
       <p class="lede">One agent writes the explanation and must cite a verified statement for every sentence. A second agent audits each sentence. A rule-based judge, which is not a language model, checks the numbers and wording and has the last word.</p>
@@ -290,7 +292,7 @@
   </section>
 
   <section id="evidence" class="evidence band" aria-labelledby="h-ev">
-    <p class="eyebrow">Cohort results</p>
+    <p class="eyebrow"><span class="idx">02</span>Cohort results</p>
     <h2 id="h-ev">What the evidence says</h2>
     <div id="ev-explain" class="expl expl-panel expl-wide" hidden></div>
     <p class="lede narrow">Four results decide how much weight the simulation deserves. They are stated here in full, including the ones that go against the demo.</p>
@@ -325,7 +327,7 @@
   </section>
 
   <section id="model-card" class="mc band" aria-labelledby="h-mc">
-    <p class="eyebrow">Intended use, method and limits</p>
+    <p class="eyebrow"><span class="idx">03</span>Intended use, method and limits</p>
     <h2 id="h-mc">Model card</h2>
 
     <div class="mc-grid">
@@ -394,7 +396,14 @@
 </main>
 
 <footer class="foot">
-  <p>OncoVision is a research demo built for a hackathon. Not a medical device and not clinical advice. Patient data are public, de-identified research cohorts used under their licences (MU-Glioma-Post and UCSD-PTGBM: CC BY 4.0). Third-party code and fonts: <a href="THIRD_PARTY.md">THIRD_PARTY.md</a>.</p>
+  <div class="foot-in">
+    <p class="foot-mark">OncoVision</p>
+    <div class="foot-cols">
+      <p><span class="foot-h">Status</span>OncoVision is a research demo built for a hackathon. Not a medical device and not clinical advice.</p>
+      <p><span class="foot-h">Data</span>Patient data are public, de-identified research cohorts used under their licences (MU-Glioma-Post and UCSD-PTGBM: CC BY 4.0).</p>
+      <p><span class="foot-h">Colophon</span>Third-party code and fonts: <a href="THIRD_PARTY.md">THIRD_PARTY.md</a>.</p>
+    </div>
+  </div>
 </footer>
 
 <dialog id="method" class="method" aria-labelledby="method-h">

@@ -1,9 +1,11 @@
 # OncoVision front end: design note
 
-## Direction: the reading room
+## Direction: the clinical monograph
 
-A calm instrument, not a landing page. The page is a light table with one dark viewport on it, the way a
-radiology reading room has one lit screen. Density is moderate, layout is predictable, motion is functional.
+A calm instrument, not a landing page, and strictly greyscale. The page reads like a printed clinical
+monograph: white paper, black ink, hairline rules, a serif for headings and figures. One black imaging
+console sits on it, the way a radiology reading room has one lit screen. Density is moderate, layout is
+predictable, motion is functional.
 
 The one thing to remember: **every sentence of the AI explanation carries its receipt.** The explanation is
 shown as a ledger, one sentence per row, with where the sentence came from, the verified statements it
@@ -11,45 +13,64 @@ cites, and any objection the second agent raised next to the rule-based judge's 
 
 ## Colour
 
-A clinical slate palette with restrained semantic accents. (The first version of this revamp used an
-H&E-stain palette; it was replaced on request.)
+There is no hue anywhere, including the 3D view and the charts. (Earlier versions used an H&E-stain palette
+and then a slate palette with cobalt, teal and amber accents; both were replaced on request.)
 
 | Token | Light | Dark | Use |
 | --- | --- | --- | --- |
-| `--bg` | `#F1F5F9` | `#0F172A` | page |
-| `--surface` | `#FFFFFF` | `#1E293B` | panels |
-| `--text` | `#0F172A` | `#E2E8F0` | ink |
-| `--accent` (cobalt) | `#1D4ED8` | `#7EA6FF` | primary actions, selection, effect bars |
-| `--teal` | `#0F766E` | `#5CC8C0` | active markers: playhead, viewport marks, the "measured" tag |
-| `--warn` (amber) | `#8A4B08` | `#DFA64A` | the "illustrative" tag, warnings |
-| `--bad` (crimson) | `#9F1239` | `#EE8A9C` | errors, the no-treatment curve |
-| `--stage-0` | `#0B1220` | `#0B1220` | 3D stage, deep slate in both themes, not black |
+| `--bg`, `--surface` | `#FFFFFF` | `#0B0B0B` | page, panels |
+| `--surface-2` | `#F4F4F4` | `#171717` | the evidence band, insets, hover |
+| `--line` | `#E2E2E2` | `#2B2B2B` | hairlines |
+| `--line-strong` | `#8C8C8C` | `#707070` | control borders |
+| `--text` | `#0A0A0A` | `#F4F4F4` | ink, primary actions, selection |
+| `--text-2` | `#3A3A3A` | `#C6C6C6` | body copy |
+| `--text-3` | `#6E6E6E` | `#8E8E8E` | labels, notes |
 
-The density ramp in the 3D view runs cobalt to cyan to near-white (`#24459C`, `#2F86D6`, `#5FD4D6`,
-`#F2FEFF`), like a single-channel fluorescence readout. Scenario colours are still paired with a dash
-pattern and a marker shape. Tags keep text plus shape.
+Each token is one `light-dark()` pair. The imaging console and the footer set `color-scheme: dark`, so they
+take the dark values in both themes without a second token block. This needs a browser with `light-dark()`
+(Chrome 123, Firefox 120, Safari 17.5 or later).
+
+With no colour, meaning is carried by four other things, always paired with text:
+
+- **Solidity.** Measured is a filled ink chip. Illustrative is a dashed outline. Sample data is hatched.
+  AI-written is a plain outline.
+- **Line pattern and marker shape.** Scenario curves differ by dash pattern and marker, with two grey
+  levels; the selected scenario is the heavy line and each curve is labelled at its right end.
+- **Inversion.** The selected patient, the Judge, the notice line and the primary button are ink blocks
+  with paper-coloured text.
+- **Hatching.** Forecast regions, held-out bars and warnings are hatched.
+
+The density ramp in the 3D view runs dark grey to white (`#262626`, `#6E6E6E`, `#BDBDBD`, `#FFFFFF`), like a
+windowed scan. The same stops are in `js/viewer3d.js`, `js/main.js` (2D slice) and the legend in the CSS.
 
 ## Type
 
-Only the fonts already vendored are used. Geist for everything, Geist Mono with tabular figures for data.
-Panel sub-headings are small uppercase with wide tracking. Instrument Serif is no longer used.
+Only the fonts already vendored are used. Instrument Serif for the headline, section headings, the scenario
+name on the console and static figures (evidence numbers, tally). Geist for text and controls; live numbers
+that change during playback are Geist Light with tabular figures so they do not jitter. Geist Mono for
+identifiers, tags and axis values. Labels are small uppercase Geist with wide tracking.
 On screens 1800 px and wider the root size steps up so the page holds on a projector.
 
 ## Layout
 
 ```
-top bar: brand · sections · on-this-device strip (API only) · data chip · theme
-honesty line (sticky with the top bar)
-title + privacy line + "Play the guided tour"
-┌ 3D stage, transport, view options ────┐ ┌ four steps                ┐
-│ burden chart (synced playhead)        │ │ patient picker            │
-└───────────────────────────────────────┘ │ numbers, scenario table   │
-                                          └───────────────────────────┘
+top bar: wordmark · sections · on-this-device strip (API only) · data chip · theme
+notice line, ink on paper inverted (sticky with the top bar)
+headline + privacy line, then the four labels as a ruled strip
+┌ imaging console: viewport, legend,    ┐ ┌ four steps                ┐
+│ timeline, view options (all black)    │ │ patient picker            │
+│ burden chart (synced playhead)        │ │ parameters                │
+│ scenario effect                       │ │ numbers, scenario table   │
+└───────────────────────────────────────┘ └───────────────────────────┘
 How the explanation was checked: agents → tally → sentence ledger
-Evidence · Model card (same content, restyled)
+Evidence, on a full-bleed grey band: a ruled grid of four findings
+Model card: a document, heading in the left column, body in the right
+footer, black in both themes
 ```
 
-Two columns from 1000 px, one column below. On a phone the order is steps, picker, stage, chart, numbers.
+Panels are ruled blocks, not cards: one ink rule above, no box, no radius, no shadow. From 1200 px the
+sections after the workspace put their label in a left margin column. Two columns from 1000 px, one column
+below. On a phone the order is steps, picker, console, chart, numbers.
 
 ## Motion
 
@@ -73,8 +94,10 @@ Two columns from 1000 px, one column below. On a phone the order is steps, picke
 | Read-only model parameter panel with units, scenario select | Shows what the stored simulation used. There are no sliders because nothing re-runs in the browser. |
 | Scenario effect panel, CSV export, print | Effect versus no further treatment at the end of the forecast; raw curves as CSV. |
 | "Evidence & methodology" dialog and case chip in the header | The method and the sources of the priors are one click from the first screen. |
+| Greyscale throughout, serif headings, ruled blocks instead of cards | The slate palette with coloured accents and rounded cards read as a stock dashboard. |
+| Transport and view options moved onto the black console | The viewer is one instrument, not a dark box with light controls under it. |
 
-Kept as they were: the data format, URL parameters, tags and their wording, "not available" for missing
+Kept as they were: the data format, URL parameters, element IDs, tags and their wording, "not available" for missing
 values, the WebGL 2 fallback, keyboard operation, and the exported API of `js/explain.js`.
 
 ## Slots for later features

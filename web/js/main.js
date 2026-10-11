@@ -180,7 +180,7 @@ function frameFor(p, key, t) {
 }
 
 // ---------- rendering ----------
-const RAMP = [[0x24, 0x45, 0x9c], [0x2f, 0x86, 0xd6], [0x5f, 0xd4, 0xd6], [0xf2, 0xfe, 0xff]];
+const RAMP = [[0x26, 0x26, 0x26], [0x6e, 0x6e, 0x6e], [0xbd, 0xbd, 0xbd], [0xff, 0xff, 0xff]];
 function rampRGB(d) {
   d = Math.min(1, Math.max(0, d));
   const sm = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
@@ -212,7 +212,7 @@ function drawSlice(fr, invMax) {
       else if (axis === "y") d = v(r, i0, c) * (1 - w) + v(r, i1, c) * w;
       else d = v(r, c, i0) * (1 - w) + v(r, c, i1) * w;
       const dn = d * invMax;
-      const col = rampRGB(dn).map((c, k) => [11, 18, 32][k] + (c - [11, 18, 32][k]) * Math.min(1, dn / 0.06));
+      const col = rampRGB(dn).map((c) => c * Math.min(1, dn / 0.06)); // fades to the black stage
       const o = (r * N + c) * 4;
       img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 255;
     }
@@ -662,7 +662,7 @@ function drawGizmo(camera) {
   let h = "";
   for (const [name, a] of axes) {
     const v = a.applyQuaternion(q);
-    h += `<line x1="0" y1="0" x2="${(v.x * 20).toFixed(1)}" y2="${(-v.y * 20).toFixed(1)}" stroke="#8fa6c4" stroke-width="1.6" stroke-linecap="round"/><text x="${(v.x * 27).toFixed(1)}" y="${(-v.y * 27 + 3).toFixed(1)}" text-anchor="middle">${name}</text>`;
+    h += `<line x1="0" y1="0" x2="${(v.x * 20).toFixed(1)}" y2="${(-v.y * 20).toFixed(1)}" stroke="#9a9a9a" stroke-width="1.2" stroke-linecap="round"/><text x="${(v.x * 27).toFixed(1)}" y="${(-v.y * 27 + 3).toFixed(1)}" text-anchor="middle">${name}</text>`;
   }
   $("gizmo").innerHTML = h;
   updateScaleBar(camera);
