@@ -34,15 +34,31 @@ from .calibrate import CalItem, calibrate_batch, counterfactual
 D_DEFAULT = 0.1      # mm^2/day, typical glioma diffusion; not fitted per patient here
 
 
-def _load(path):
-    return np.asarray(nib.load(path).dataobj).astype(np.int16)
+_HARMONISED = {"ncr": 1, "edema": 2, "et": 3, "rc": 4}
+
+
+def _load(path, dataset: str | None = None):
+    """Load a label mask and map the dataset's own label values to the harmonised ones
+    (1 ncr, 2 edema, 3 et, 4 rc) so the seeding is dataset-agnostic."""
+    a = np.asarray(nib.load(path).dataobj).astype(np.int16)
+    if dataset is None:
+        return a
+    from ..imaging.volumes import LABEL_MAPS
+    lm = LABEL_MAPS[dataset]
+    if all(lm.get(k) and _HARMONISED[lm[k]] == k for k in lm):
+        return a
+    out = np.zeros_like(a)
+    for raw, name in lm.items():
+        out[a == raw] = _HARMONISED[name]
+    return out
 
 
 def prepare_patient(g: pd.DataFrame, sched: dict, grid: int = 64):
     g = g.sort_values("day").reset_index(drop=True)
     if len(g) < 2:
         return None
-    masks = [_load(p) for p in g.mask_path]
+    ds = g.dataset.iloc[0] if "dataset" in g.columns else None
+    masks = [_load(p, ds) for p in g.mask_path]
     spacing = json.loads(g.spacing.iloc[0]) if isinstance(g.spacing.iloc[0], str) else list(g.spacing.iloc[0])
     pg = seeding.make_grid(masks, voxel_mm=float(spacing[0]), grid=grid)
     if pg is None:

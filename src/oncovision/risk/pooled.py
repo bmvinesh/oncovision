@@ -173,6 +173,45 @@ def evaluate(df: pd.DataFrame, repeats: int = 5, seed: int = 17) -> dict:
     return out, df
 
 
+def fit_final(df: pd.DataFrame, out_dir: str, oof: pd.DataFrame | None = None, top_k: int = 6) -> dict:
+    """Fit the pooled model on every patient with a known outcome and save it.
+
+    Writes ``risk_model.json`` (XGBoost native format, not pickle), ``risk_drivers.json`` (top SHAP
+    drivers per patient; explanations of the final model on its own training patients) and
+    ``risk_model_card.json``.  Per-patient scores shown to users must be the out-of-fold ones
+    (``oof``), not the in-sample predictions of the final model.
+    """
+    import shap
+
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    d = df[df.deceased.notna()].reset_index(drop=True)
+    X, y = design(d), d.deceased.astype(int).to_numpy()
+    model = _model().fit(X, y)
+    model.save_model(str(out / "risk_model.json"))
+    sv = shap.TreeExplainer(model).shap_values(X)
+    names = list(X.columns)
+    drivers = {}
+    for i, uid in enumerate(d.patient_uid):
+        idx = np.argsort(-np.abs(sv[i]))[:top_k]
+        drivers[uid] = [{"feature": names[j], "value": None if pd.isna(X.iloc[i, j]) else float(X.iloc[i, j]),
+                         "shap": float(sv[i][j])} for j in idx]
+    (out / "risk_drivers.json").write_text(json.dumps(drivers))
+    imp = pd.Series(np.abs(sv).mean(axis=0), index=names).sort_values(ascending=False)
+    card = {
+        "model": "xgboost binary:logistic, max_depth 3, 300 trees", "target": "deceased (death recorded during follow-up)",
+        "features": names, "n_train": int(len(d)), "n_deceased": int(y.sum()),
+        "trained_on": d.dataset.value_counts().to_dict(),
+        "mean_abs_shap": {k: float(v) for k, v in imp.items()},
+        "scores": "use out-of-fold risk (risk_pooled_metrics_scores.parquet) for display; "
+                  "the saved model is for scoring new patients",
+        "caveat": "relative prognostic rank; follow-up differs by cohort; weak external transfer "
+                  "(see risk_pooled_metrics.json leave_one_dataset_out)",
+    }
+    (out / "risk_model_card.json").write_text(json.dumps(card, indent=2))
+    return card
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--processed", required=True)
@@ -180,6 +219,7 @@ def main(argv=None):
     ap.add_argument("--ucsf-master", required=True)
     ap.add_argument("--ucsf-long", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--model-out", help="directory for the final fitted model, SHAP drivers and model card")
     a = ap.parse_args(argv)
     P, R = Path(a.processed), Path(a.raw)
     df = pd.concat([
@@ -190,6 +230,8 @@ def main(argv=None):
                   str(P / "ucsd_ptgbm/timepoints.parquet")),
     ], ignore_index=True)
     res, scored = evaluate(df)
+    if a.model_out:
+        res["final_model"] = fit_final(df, a.model_out, scored)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text(json.dumps(res, indent=2))
     scored[["patient_uid", "dataset", "deceased", "risk_oof"]].to_parquet(str(a.out).replace(".json", "_scores.parquet"))
