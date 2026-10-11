@@ -35,7 +35,8 @@ Per case the viewer uses: `uid`, `status`, `rho`, `delta`, `D`, `grid{cells,spac
 | Treatment-effect fit, risk AUCs, forecast check, priors | Read live from `whatif_cases.json` (`model_card`, `effects`, `forecast_metrics`). Absent block renders "not available". |
 | Two facts quoted from `docs/runbooks/treatment-effects.md` (growth-rate autocorrelation -0.02 over 221 interval pairs; 71 of 150 calibrations needed the shrinking branch) | **Hard-coded** in `js/modelcard.js` (`RUNBOOK_FACTS`), labelled with their source. Replace when the JSON carries them. |
 | `cv_vs_no_treatment_baseline_pct` | The sign is interpreted as: negative = worse than the no-treatment baseline (-6.6 is shown as "6.6% worse"). |
-| Narrative, live `/api/simulate`, `/api/health` | Not built. This viewer is static-only. |
+| Plain-language explanation (`narrative` per case, `model_card.explainer`) | Baked into `whatif_cases.json` by `oncovision.llm.debate`; shown with an **AI-written** tag and an expandable "How this was checked" trace. When the page is served by `oncovision.api.app`, a **Re-run live** button calls `POST /api/narrative`; on static hosting it is hidden. |
+| Live `/api/simulate` | Not built. |
 | Contract section 3 (`manifest.json`, `case.json`, `frames.u8`) | Not consumed. The viewer follows the `whatif_cases.json` format the backend emits. |
 
 ## Honesty rules in the UI
@@ -58,6 +59,7 @@ js/viewer3d.js    WebGL2 ray-marched volume (clip plane, split compare)
 js/chart.js       SVG burden chart with keyboard-operable playhead
 js/picker.js      virtualised, searchable, filterable patient list
 js/modelcard.js   evidence cards and model card
+js/explain.js     plain-language explanation block, checking trace, live re-run
 vendor/           three.js, OrbitControls, fonts
 THIRD_PARTY.md    licences and references
 ```

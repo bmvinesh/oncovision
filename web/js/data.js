@@ -40,6 +40,7 @@ export async function loadCohort() {
           effects: raw.effects || null,
           forecastMetrics: raw.forecast_metrics || (raw.model_card && raw.model_card.forecast) || null,
           modelCard: raw.model_card || null,
+          explainer: (raw.model_card && raw.model_card.explainer) || null,
           illustrative: raw.illustrative !== false,
         },
         patients,
@@ -114,6 +115,7 @@ function normalisePatient(c) {
     idh: str(cl.idh),
     mgmt: str(cl.mgmt),
     diagnosis: str(cl.diagnosis),
+    narrative: c.narrative && typeof c.narrative.text === "string" ? c.narrative : null,
   };
   p.hasFrames = keys.some((k) => scenarios[k].frames) || !!p.observedFrames;
   p.lastBurden = observed[observed.length - 1].seed;

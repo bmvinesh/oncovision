@@ -6,6 +6,7 @@ import { Viewer, webglSupported } from "./viewer3d.js";
 import { Chart } from "./chart.js";
 import { Picker } from "./picker.js";
 import { renderFromData } from "./modelcard.js";
+import { renderExplanation, probeApi } from "./explain.js";
 import {
   fmtVol, fmtPct, fmtDay, fmtNum, isNum, NA, esc, scenInfo, statusInfo, DATASET_LABEL, AGENT_LABEL, markerSvg,
 } from "./format.js";
@@ -335,6 +336,8 @@ function renderPatientStatic(p) {
     warn.hidden = false;
   } else { warn.hidden = true; }
 
+  renderExplanation($("ro-explain"), p.narrative, { uid: p.uid, onUpdate: (n) => { p.narrative = n; } });
+
   // what these numbers rest on
   const c = p.calib;
   const rhoLine = st === "shrinking"
@@ -543,6 +546,8 @@ async function boot() {
   chip.textContent = `${cohort.kind === "fixture" ? "Sample data" : "Baked data"}: ${cohort.patients.length} patients`;
   chip.classList.toggle("is-fixture", cohort.kind === "fixture");
   renderFromData(cohort);
+  await probeApi();               // static hosting: 404 at once and the live re-run button stays hidden
+  renderExplanation($("ev-explain"), cohort.meta.explainer, { kind: "results", onUpdate: (n) => { cohort.meta.explainer = n; } });
 
   picker = new Picker({
     list: $("plist"), count: $("plist-count"), q: $("q"), status: $("f-status"),

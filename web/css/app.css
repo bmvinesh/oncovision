@@ -400,3 +400,16 @@ table.data td.num, table.data th.num { text-align: right; white-space: nowrap; }
   .bar.indeterminate span { width: 100%; opacity: .5; }
 }
 @media print { .top, .stage-controls, .transport { display: none; } }
+
+/* ---- plain-language explanation (AI-written, checked) ---- */
+.tag-ai { color: var(--text-2); border-color: var(--line-strong); background: var(--surface-2); border-style: solid; }
+.tag-ai::before { border: 1.6px solid currentColor; border-radius: 2px; }
+.expl h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.expl-text { font-size: 0.95rem; line-height: 1.55; margin: 0 0 8px; }
+.expl-wide { margin: 0 0 24px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.expl .btn { margin: 4px 0; }
+.dbt { margin-top: 10px; }
+.dbt h5 { margin: 12px 0 4px; font-size: 0.85rem; }
+.dbt ul { margin: 4px 0 8px; padding-left: 18px; font-size: 0.82rem; }
+.dbt q { font-style: normal; color: var(--text-2); }
+.dbt-claims ol { font-size: 0.8rem; padding-left: 20px; }
