@@ -289,3 +289,12 @@ def test_required_claim_that_the_model_paraphrased_is_restored_verbatim():
              {"text": "A third claim.", "cites": ["c3"]}, {"text": "A fourth claim.", "cites": ["c4"]}]
     r = D.debate(led, "results", model="m", caller=Script(advocate=[{"sentences": draft}], skeptic=[audit(4)]))
     assert led[1]["text"] in r["text"] and "could not be separated." not in r["text"]
+
+
+def test_characterisation_and_outcome_wording_seen_in_the_measurement_is_caught():
+    for text in ("The tumour in this patient is aggressive and concerning.",
+                 "Patients with a tumour like this usually do poorly.",
+                 "This shows the tumour is resistant to the treatments considered.",
+                 "The treatments appear to do very little for this tumour."):
+        assert any("wording" in i for i in D.judge_sentence({"text": text, "cites": ["c2"]}, LEDGER)), text
+    assert D.judge_sentence(GOOD[1], LEDGER) == []

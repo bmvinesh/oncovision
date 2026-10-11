@@ -38,7 +38,7 @@ from . import narrative as N
 MAX_ROUNDS = 2          # critique rounds; at most one revision between them
 MAX_WORDS = 50          # per sentence; long sentences are where claims get merged
 MIN_SENTENCES = 3       # fewer surviving sentences than this falls back to the template
-PROTOCOL = "debate-v2"
+PROTOCOL = "debate-v3"
 
 SAFETY_MARKERS = ("This is an illustrative research simulation", "All of this is a research demonstration")
 
@@ -49,7 +49,9 @@ FORBIDDEN = re.compile(
     r"survive|survival|life expectancy|prognos\w+|clinically (?:useful|proven|validated)|"
     r"indicat\w+|significan\w+|suggest\w+|impl(?:y|ies|ying)|therefore|thus|hence|because|due to|"
     r"effective\w*|ineffective|benefit\w*|superior|inferior|better than|worse than|"
-    r"(?:more|less) suppress\w+|predict\w*|likely|unlikely|probabl\w+|clearly|obviously|undoubtedly)\b", re.I)
+    r"(?:more|less) suppress\w+|predict\w*|likely|unlikely|probabl\w+|clearly|obviously|undoubtedly|"
+    r"aggressive|concerning|worrying|alarming|poor|poorly|resistan\w+|malignan\w+|dangerous|"
+    r"little to no|very little|no effect|appears? to|seems? to)\b", re.I)
 
 # One scenario set against another: no claim states such a comparison, so none may be made.
 CROSS_COMPARE = re.compile(

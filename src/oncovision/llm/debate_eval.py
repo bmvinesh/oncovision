@@ -167,6 +167,9 @@ def run(cases, eff, model, timeout):
     def rate(a, b):
         return round(a / b, 3) if b else None
 
+    for v in inj.values():                      # grouped by what the Judge's rules see, not by design intent
+        v["rule_visible"] = v.pop("judge_alone_flags", 0) / max(1, v["n"]) >= 0.5
+
     n = len(cases)
     sp, db = nat["single_pass"], nat["debate"]
     ms = [x["ms"] for x in db]
@@ -183,8 +186,9 @@ def run(cases, eff, model, timeout):
                        "judge_flags_per_case": round(statistics.mean(x["judge_flags"] for x in db), 2),
                        "skeptic_objections_upheld_per_case": round(statistics.mean(x["skeptic_upheld"] for x in db), 2),
                        "skeptic_objections_overruled_per_case": round(statistics.mean(x["skeptic_overruled"] for x in db), 2),
-                       "skeptic_unavailable_cases": sum(x["skeptic_error"] for x in db)}},
-        "clean_control": dict(clean, skeptic_false_alarm_rate=rate(clean["skeptic_upheld"], clean["sentences"]),
+                       "cases_with_a_retried_skeptic_reply": sum(x["skeptic_error"] for x in db)}},
+        "clean_control": dict(clean, skeptic_raw_objection_rate=rate(clean["skeptic_objected"], clean["sentences"]),
+                              skeptic_false_alarm_rate=rate(clean["skeptic_upheld"], clean["sentences"]),
                               judge_false_alarm_rate=rate(clean["judge_flagged"], clean["sentences"])),
         "injection": {k: dict(v, **{f"{f}_rate": rate(v[f], v["n"]) for f in
                                     ("v1_check", "judge", "skeptic_raised", "skeptic_upheld", "removed_in_final")})
@@ -192,8 +196,6 @@ def run(cases, eff, model, timeout):
         "note": "Injected errors are synthetic. Rates describe detection of these error types; they are not the "
                 "rate at which the model errs unprompted (see natural).",
     }
-    for v in inj.values():                      # grouped by what the Judge's rules can see, not by design intent
-        v["rule_visible"] = v.pop("judge_alone_flags", 0) == v["n"]
     agg = {}
     for vis in (True, False):
         rows = [v for v in inj.values() if v["rule_visible"] == vis]
