@@ -13,6 +13,10 @@ Everything (three.js, fonts) is in `vendor/`; no request leaves localhost. WebGL
 
 URL parameters: `?p=<PatientID>&s=<scenario>&t=<day>` open a specific state (the page keeps them in sync as you scrub). `?data=fixture` forces the bundled sample, `?data=baked` forbids falling back to it. `?gl=off` simulates a browser without WebGL 2 (test hook). `?tour=1` starts the guided tour on load. `?preview=future` shows the empty designs of the slots for later features (see below).
 
+## Publish
+
+`.github/workflows/pages.yml` publishes `web/` to GitHub Pages on every push to `main` that touches it. Pages has to be enabled once by a repo admin (Settings > Pages > Source: GitHub Actions). `web/data/` is git-ignored, so the published site runs on the bundled sample in `data-fixture/`; the live-only controls stay hidden because there is no API.
+
 ## Data files expected
 
 The loader reads `whatif_cases.json` from `data/` first and falls back to `data-fixture/`. Frame URLs inside the JSON are resolved relative to the directory the JSON came from (so `data-fixture/` + `whatif/<PatientID>/<scenario>.u8`).
