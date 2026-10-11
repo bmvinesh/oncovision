@@ -135,17 +135,18 @@ def _reg(seed=17):
 
 def _metrics(y, pred, dt, base_rate):
     from scipy.stats import spearmanr
-    lr_true, lr_pred = y * dt, pred * dt
+    base_rate = np.broadcast_to(np.asarray(base_rate, dtype=float), y.shape)
+    lr_true, lr_pred, lr_base = y * dt, pred * dt, base_rate * dt
     dead = 0.05
     moved = np.abs(lr_true) > dead
     return {
         "n": int(len(y)),
         "mae_log_ratio": float(np.mean(np.abs(lr_true - lr_pred))),
-        "baseline_cohort_median_mae": float(np.mean(np.abs(lr_true - base_rate * dt))),
+        "baseline_cohort_median_mae": float(np.mean(np.abs(lr_true - lr_base))),
         "baseline_no_change_mae": float(np.mean(np.abs(lr_true))),
         "spearman": float(spearmanr(pred, y).statistic) if len(y) > 5 else None,
         "direction_accuracy": float(np.mean(np.sign(lr_pred[moved]) == np.sign(lr_true[moved]))) if moved.any() else None,
-        "direction_accuracy_cohort_median": float(np.mean(np.sign(base_rate * dt[moved]) == np.sign(lr_true[moved])))
+        "direction_accuracy_cohort_median": float(np.mean(np.sign(lr_base[moved]) == np.sign(lr_true[moved])))
         if moved.any() else None,
     }
 
